@@ -11,12 +11,12 @@ public class GetAllProductsHandler
     : IRequestHandler<GetAllProductsQuery, PaginatedList<GetAllProductsDto>>
 {
     // ── Fix 1: use the real DbContext name exactly as declared ───────
-    private readonly PrStoreDbContext _db;
+    private readonly DamoorDbContext _db;
     private readonly ICacheService _cache;
     private readonly ILogger<GetAllProductsHandler> _logger;
 
     public GetAllProductsHandler(
-        PrStoreDbContext db,
+        DamoorDbContext db,
         ICacheService cache)
         //ILogger<GetAllProductsHandler> logger)
     {

@@ -8,9 +8,9 @@ using Damoor.Infrastructure.Identity;
 
 namespace Damoor.Infrastructure.Persistence
 {
-    public class PrStoreDbContext : IdentityDbContext<AppUser>
+    public class DamoorDbContext : IdentityDbContext<AppUser>
     {
-        public PrStoreDbContext(DbContextOptions<PrStoreDbContext> options)
+        public DamoorDbContext(DbContextOptions<DamoorDbContext> options)
             : base(options) { }
 
         public DbSet<Product> Products => Set<Product>();

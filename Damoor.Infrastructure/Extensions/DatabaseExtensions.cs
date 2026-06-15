@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Damoor.Infrastructure.Persistence;
+using Damoor.Infrastructure.Persistence.Interceptors; // Add this using statement
 
 namespace Damoor.Infrastructure.Extensions;
 
@@ -11,7 +12,11 @@ internal static class DatabaseExtensions
         this IServiceCollection services,
         IConfiguration config)
     {
-        services.AddDbContext<PrStoreDbContext>(options =>
+        services.AddScoped<AuditableEntityInterceptor>(); // Register the interceptor
+
+        services.AddDbContext<DamoorDbContext>((sp, options) =>
+        {
+            var interceptor = sp.GetRequiredService<AuditableEntityInterceptor>();
             options.UseSqlServer(
                 config.GetConnectionString("DefaultConnection"),
                 sql =>
@@ -19,8 +24,10 @@ internal static class DatabaseExtensions
                     sql.EnableRetryOnFailure(3);
                     sql.CommandTimeout(30);
                     sql.MigrationsAssembly(
-                        typeof(PrStoreDbContext).Assembly.FullName);
-                }));
+                        typeof(DamoorDbContext).Assembly.FullName);
+                })
+                .AddInterceptors(interceptor); // Add the interceptor to DbContext
+        });
 
         return services;
     }
