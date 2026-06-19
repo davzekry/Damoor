@@ -12,7 +12,7 @@ internal static class IdentityExtensions
         this IServiceCollection services)
     {
         services
-            .AddIdentity<AppUser, IdentityRole>(options =>
+            .AddIdentity<AppUser, IdentityRole<int>>(options =>
             {
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 8;

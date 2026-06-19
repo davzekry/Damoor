@@ -2,13 +2,15 @@
 
 namespace Damoor.Domain.Entities
 {
-    public sealed class Product : BaseEntity
+    public sealed class Product : SoftDeletableEntity
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public decimal Price { get; set; }
-        public int StockQuantity { get; set; }
-        public Guid CategoryId { get; set; }
+        public int CategoryId { get; set; }
         public Category Category { get; set; } = null!;
+        public ICollection<ProductVariant> Variants { get; set; } = [];
+        public ICollection<ProductImage> Images { get; set; } = [];
+        public ICollection<WishlistItem> WishlistItems { get; set; } = [];
+        public ICollection<Review> Reviews { get; set; } = [];
     }
 }
