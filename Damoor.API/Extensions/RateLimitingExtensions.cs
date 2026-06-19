@@ -1,31 +1,49 @@
-﻿using System.Threading.RateLimiting;
+using System.Threading.RateLimiting;
+using Damoor.Application.Common.Models;
 using Microsoft.AspNetCore.RateLimiting;
+
 namespace Damoor.API.Extensions;
 
 public static class RateLimitingExtensions
 {
-    public static IServiceCollection AddRateLimiting(this IServiceCollection services)
+    public static IServiceCollection AddRateLimiting(
+        this IServiceCollection services)
     {
         services.AddRateLimiter(options =>
         {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-            // Global policy for general endpoints
-            options.AddFixedWindowLimiter("fixed", opt =>
+            options.RejectionStatusCode =
+                StatusCodes.Status429TooManyRequests;
+            options.OnRejected = async (context, cancellationToken) =>
             {
-                opt.Window = TimeSpan.FromSeconds(10);
-                opt.PermitLimit = 10; // 10 requests every 10 seconds
-                opt.QueueLimit = 2;
-                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                await context.HttpContext.Response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        "Too many requests. Please try again later."),
+                    cancellationToken);
+            };
+
+            options.AddFixedWindowLimiter("fixed", limiter =>
+            {
+                limiter.Window = TimeSpan.FromSeconds(10);
+                limiter.PermitLimit = 10;
+                limiter.QueueLimit = 2;
+                limiter.QueueProcessingOrder =
+                    QueueProcessingOrder.OldestFirst;
             });
 
-            // Stricter policy for Auth/Checkout
-            options.AddSlidingWindowLimiter("strict", opt =>
-            {
-                opt.Window = TimeSpan.FromMinutes(1);
-                opt.SegmentsPerWindow = 3;
-                opt.PermitLimit = 5; // Only 5 attempts per minute
-            });
+            options.AddPolicy("strict", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey:
+                        httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        PermitLimit = 5,
+                        QueueLimit = 0,
+                        QueueProcessingOrder =
+                            QueueProcessingOrder.OldestFirst
+                    }));
         });
 
         return services;

@@ -17,7 +17,7 @@ The implemented domain and persistence model supports:
 - Historical order-item snapshots for product names, variant descriptions, quantities, and prices.
 - Hybrid deletion rules for catalog, transactional, and short-lived data.
 
-The HTTP API is still at an early stage. The currently implemented business endpoint is an authenticated, paginated product query. Authentication endpoints, checkout commands, cart endpoints, wishlist endpoints, review endpoints, and administrative catalog commands are not currently implemented.
+The HTTP API is still at an early stage. It currently exposes user signup, user sign-in, and an authenticated paginated product query. Checkout commands, cart endpoints, wishlist endpoints, review endpoints, and administrative catalog commands are not currently implemented.
 
 ## Architecture
 
@@ -121,6 +121,9 @@ Damoor/
 ### Currently exposed API functionality
 
 - Versioned API route structure.
+- Public user signup and sign-in endpoints.
+- JWT access-token issuance with User and Admin role claims.
+- Idempotent role seeding and optional secret-backed Admin bootstrap.
 - Authenticated product-list endpoint.
 - Product search by name or description.
 - Product sorting by name, minimum variant price, or creation date.
@@ -214,6 +217,12 @@ The application validates the database connection string and JWT signing key dur
     "Audience": "MyAppUsers",
     "ExpiryMinutes": 60
   },
+  "AdminSeed": {
+    "Enabled": false,
+    "FullName": "",
+    "Email": "",
+    "Password": ""
+  },
   "Serilog": {
     "MinimumLevel": {
       "Default": "Information",
@@ -226,7 +235,7 @@ The application validates the database connection string and JWT signing key dur
 }
 ```
 
-Do not commit database passwords or JWT signing keys.
+Do not commit database passwords, JWT signing keys, or Admin passwords.
 
 ### Local secrets
 
@@ -235,6 +244,15 @@ Configure local Development secrets against the API project:
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=Damoor;Trusted_Connection=True;TrustServerCertificate=True" --project Damoor.API
 dotnet user-secrets set "JwtSettings:SecretKey" "replace-with-a-random-secret-of-at-least-32-characters" --project Damoor.API
+```
+
+To bootstrap the first Admin, also configure:
+
+```bash
+dotnet user-secrets set "AdminSeed:Enabled" "true" --project Damoor.API
+dotnet user-secrets set "AdminSeed:FullName" "Store Administrator" --project Damoor.API
+dotnet user-secrets set "AdminSeed:Email" "admin@example.com" --project Damoor.API
+dotnet user-secrets set "AdminSeed:Password" "<strong-password>" --project Damoor.API
 ```
 
 List configured keys:
@@ -256,6 +274,10 @@ JwtSettings__SecretKey
 JwtSettings__Issuer
 JwtSettings__Audience
 JwtSettings__ExpiryMinutes
+AdminSeed__Enabled
+AdminSeed__FullName
+AdminSeed__Email
+AdminSeed__Password
 ```
 
 User Secrets are intended only for local development.
@@ -364,6 +386,8 @@ Bearer <JWT>
 
 | Method | Route | Authentication | Description |
 | --- | --- | --- | --- |
+| `POST` | `/api/v1/Auth/sign-up` | Anonymous | Creates a normal user, assigns the `User` role, and returns a JWT |
+| `POST` | `/api/v1/Auth/sign-in` | Anonymous | Authenticates by email and returns a JWT |
 | `GET` | `/api/v1/Products` | Required | Returns paginated products with category, minimum variant price, and total stock |
 | `GET` | `/health` | Not explicitly restricted | Returns SQL Server and Redis health status |
 
@@ -379,7 +403,7 @@ Product query parameters:
 
 `brand` is accepted by the validator but no Brand entity or brand-specific ordering is implemented; it currently falls back to name ordering.
 
-The controller is decorated with `[Authorize]`, but no login, registration, or token-issuing endpoint is currently implemented in this repository.
+Use the access token returned by signup or sign-in to call endpoints decorated with `[Authorize]`.
 
 ## Authentication & Authorization
 
@@ -405,7 +429,7 @@ Identity password settings:
 | Maximum failed attempts | 5 |
 | Lockout duration | 15 minutes |
 
-### JWT bearer validation
+### JWT authentication and roles
 
 JWT bearer authentication validates:
 
@@ -414,10 +438,17 @@ JWT bearer authentication validates:
 - Token lifetime
 - Signing key
 
-JWT issuance and refresh-token workflows are not currently implemented.
+Signup and sign-in issue access tokens containing:
 
-Roles, authorization policies, permission models, and role seeding were not identified during code analysis.
+- User ID in `sub`
+- Email
+- Full name in `name`
+- Unique token ID in `jti`
+- One `role` claim for each assigned role
 
+The `User` and `Admin` roles are seeded at startup. Public signup always assigns only `User`. The `AdminOnly` policy requires the `Admin` role. Refresh tokens are not implemented.
+
+An initial Admin can optionally be created at startup through `AdminSeed` configuration. Keep the Admin password in User Secrets, environment variables, or a deployment secret store; never commit it.
 ## Project Structure
 
 ### `Damoor.API`
@@ -613,7 +644,7 @@ dotnet ef migrations list --project Damoor.Infrastructure --startup-project Damo
 
 ### Swagger returns `401 Unauthorized`
 
-The products controller requires a valid Bearer token. Token issuance is not currently implemented in this repository.
+The products controller requires a valid Bearer token. Create an account through `/api/v1/Auth/sign-up` or sign in through `/api/v1/Auth/sign-in`, then enter the returned token in Swagger's authorization dialog.
 
 ### Product endpoint fails after querying the database
 

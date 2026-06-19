@@ -2,16 +2,19 @@ using Damoor.API.Extensions;
 using Damoor.API.Filters;
 using Damoor.API.Middleware;
 using Damoor.Application;
+using Damoor.Application.Common.Models;
 using Damoor.Infrastructure;
+using Damoor.Infrastructure.Identity;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
 namespace Damoor.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -30,11 +33,30 @@ namespace Damoor.API
             // advanced filter for Double-Click Protection
             builder.Services.AddScoped<IdempotencyFilter>();
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var errors = context.ModelState.Values
+                            .SelectMany(value => value.Errors)
+                            .Select(error =>
+                                string.IsNullOrWhiteSpace(error.ErrorMessage)
+                                    ? "The request body is invalid."
+                                    : error.ErrorMessage);
+
+                        return new BadRequestObjectResult(
+                            ApiResponse<object>.Fail(
+                                "Validation failed.",
+                                errors));
+                    };
+                });
             builder.Services.AddEndpointsApiExplorer();
 
 
             var app = builder.Build();
+
+            await app.Services.InitializeIdentityAsync(builder.Configuration);
 
             if (app.Environment.IsDevelopment())
             {
@@ -45,10 +67,8 @@ namespace Damoor.API
                     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Damoor API v1");
                 });
             }
-            else
-            {
-                app.UseMiddleware<ExceptionHandlingMiddleware>();
-            }
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             //app.UseSerilogRequestLogging();
 
