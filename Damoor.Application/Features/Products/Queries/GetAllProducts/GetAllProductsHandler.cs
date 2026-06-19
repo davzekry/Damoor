@@ -72,12 +72,20 @@ public class GetAllProductsHandler
 
         query = (request.SortBy.ToLower(), request.Asc) switch
         {
-            ("price", true) => query.OrderBy(p => p.Price),
-            ("price", false) => query.OrderByDescending(p => p.Price),
-            ("createdat", true) => query.OrderBy(p => p.CreatedAt),
-            ("createdat", false) => query.OrderByDescending(p => p.CreatedAt),
-            (_, true) => query.OrderBy(p => p.Name),
-            (_, false) => query.OrderByDescending(p => p.Name),
+            ("price", true) => query.OrderBy(p =>
+                p.Variants.Select(v => (decimal?)v.Price).Min())
+                .ThenBy(p => p.Id),
+            ("price", false) => query.OrderByDescending(p =>
+                p.Variants.Select(v => (decimal?)v.Price).Min())
+                .ThenBy(p => p.Id),
+            ("createdat", true) => query.OrderBy(p => p.CreatedAt)
+                .ThenBy(p => p.Id),
+            ("createdat", false) => query.OrderByDescending(p => p.CreatedAt)
+                .ThenBy(p => p.Id),
+            (_, true) => query.OrderBy(p => p.Name)
+                .ThenBy(p => p.Id),
+            (_, false) => query.OrderByDescending(p => p.Name)
+                .ThenBy(p => p.Id),
         };
 
         var totalCount = await query.CountAsync(ct);
@@ -91,8 +99,12 @@ public class GetAllProductsHandler
                 Description = p.Description,
                 Id = p.Id,
                 Name = p.Name,
-                Price = p.Price,
-                StockQuantity = p.StockQuantity
+                Price = p.Variants
+                    .Select(v => (decimal?)v.Price)
+                    .Min(),
+                StockQuantity = p.Variants
+                    .Select(v => (int?)v.StockQuantity)
+                    .Sum()
             })
             .ToListAsync(ct);
 

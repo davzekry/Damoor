@@ -1,24 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore;
 using Damoor.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Damoor.Infrastructure.Persistence.Configurations;
 
-public class ProductConfiguration : IEntityTypeConfiguration<Product>
+public sealed class ProductConfiguration
+    : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.ToTable("Products");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        builder.Property(x => x.Description).HasMaxLength(2000);
-        builder.Property(x => x.Price).HasPrecision(18, 2).IsRequired();
-        builder.Property(x => x.StockQuantity).HasDefaultValue(0);
+        builder.Property(x => x.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+        builder.Property(x => x.Description)
+            .IsRequired()
+            .HasMaxLength(2000);
         builder.HasOne(x => x.Category)
-            .WithMany(c => c.Products)
+            .WithMany(x => x.Products)
             .HasForeignKey(x => x.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-        builder.HasQueryFilter(x => !x.IsDeleted);
-        builder.HasIndex(x => x.Name).IsUnique();
+            .OnDelete(DeleteBehavior.ClientNoAction);
+        builder.HasIndex(x => new { x.Name, x.Id })
+            .HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(x => new { x.CreatedAt, x.Id })
+            .HasFilter("[IsDeleted] = 0");
+        builder.HasQueryFilter(x =>
+            !x.IsDeleted &&
+            !x.Category.IsDeleted);
     }
 }

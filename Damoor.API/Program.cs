@@ -17,6 +17,7 @@ namespace Damoor.API
 
             //builder.AddSerilog();
 
+            builder.Configuration.ValidateRequiredSecrets();
             builder.Services.AddApplication();
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddJwtAuthentication(builder.Configuration);
