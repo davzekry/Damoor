@@ -1,15 +1,16 @@
-﻿// Middleware/ExceptionHandlingMiddleware.cs
-using FluentValidation;
 using Damoor.Application.Common.Exceptions;
+using Damoor.Application.Common.Models;
+using FluentValidation;
 
 namespace Damoor.API.Middleware;
 
-public class ExceptionHandlingMiddleware
+public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next,
+    public ExceptionHandlingMiddleware(
+        RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
@@ -22,26 +23,65 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (ValidationException ex)
+        catch (ValidationException exception)
         {
-            _logger.LogWarning("Validation failed: {Errors}", ex.Errors);
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsJsonAsync(new
-            {
-                errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage })
-            });
+            _logger.LogWarning(
+                "Request validation failed with {ErrorCount} error(s).",
+                exception.Errors.Count());
+
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                "Validation failed.",
+                exception.Errors.Select(x => x.ErrorMessage));
         }
-        catch (NotFoundException ex)
+        catch (BadRequestException exception)
         {
-            _logger.LogWarning("Not found: {Message}", ex.Message);
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-            await context.Response.WriteAsJsonAsync(new { error = ex.Message });
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                exception.Message,
+                exception.Errors);
         }
-        catch (Exception ex)
+        catch (UnauthorizedException exception)
         {
-            _logger.LogError(ex, "Unhandled exception");
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status401Unauthorized,
+                exception.Message);
         }
+        catch (ConflictException exception)
+        {
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status409Conflict,
+                exception.Message);
+        }
+        catch (NotFoundException exception)
+        {
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status404NotFound,
+                exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unhandled exception");
+            await WriteErrorAsync(
+                context,
+                StatusCodes.Status500InternalServerError,
+                "An unexpected error occurred.");
+        }
+    }
+
+    private static async Task WriteErrorAsync(
+        HttpContext context,
+        int statusCode,
+        string message,
+        IEnumerable<string>? errors = null)
+    {
+        context.Response.StatusCode = statusCode;
+        await context.Response.WriteAsJsonAsync(
+            ApiResponse<object>.Fail(message, errors));
     }
 }

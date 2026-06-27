@@ -15,7 +15,7 @@ internal static class IdentityExtensions
             .AddIdentity<AppUser, IdentityRole<int>>(options =>
             {
                 options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 8;
+                options.Password.RequiredLength = 5;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireNonAlphanumeric = false;
                 options.User.RequireUniqueEmail = true;
