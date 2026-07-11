@@ -1,21 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
 using Damoor.Application.Common.Models;
 using Damoor.Application.Features.Products.Queries.GetAllProducts;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Damoor.API.Controllers.Products;
 
 public sealed partial class ProductsController
 {
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<GetAllProductsDto>>>> GetAll(
-        [FromQuery] GetAllProductsQuery query, CancellationToken ct)
+    [ProducesResponseType(
+        typeof(ApiResponse<List<GetAllProductsResult>>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<GetAllProductsResult>>>> GetAll(
+        [FromQuery] GetAllProductsQuery query,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _sender.Send(query, ct);
-            return OkPaged(result, $"Found {result.TotalCount} product(s).");
-        }
-        catch (Exception ex)
-        {
-            return NotFound("The APi returned exception.");
-        }
+        var result = await _sender.Send(query, cancellationToken);
+        return OkPaged(result, $"Found {result.TotalCount} product(s).");
     }
 }
