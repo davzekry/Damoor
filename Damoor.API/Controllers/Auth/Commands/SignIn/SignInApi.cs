@@ -13,11 +13,17 @@ public sealed partial class AuthController
     [ProducesResponseType(
         typeof(ApiResponse<AuthResponse>),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<AuthResponse>),
+        StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> SignIn(
         [FromBody] SignInCommand command,
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(command, cancellationToken);
-        return OkResponse(result, "Signed in successfully.");
+        if (!result.Success)
+            return Unauthorized(result);
+
+        return Ok(result);
     }
 }

@@ -1,4 +1,4 @@
-using Damoor.Application.Common.Exceptions;
+using Damoor.Application.Common.Models;
 using Damoor.Application.Features.Authentication.Common;
 using Damoor.Infrastructure.Identity;
 using MediatR;
@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 namespace Damoor.Application.Features.Authentication.SignIn;
 
 public sealed class SignInHandler
-    : IRequestHandler<SignInCommand, AuthResponse>
+    : IRequestHandler<SignInCommand, ApiResponse<AuthResponse>>
 {
     private const string InvalidCredentialsMessage =
         "Invalid email or password.";
@@ -26,13 +26,13 @@ public sealed class SignInHandler
         _accessTokenService = accessTokenService;
     }
 
-    public async Task<AuthResponse> Handle(
+    public async Task<ApiResponse<AuthResponse>> Handle(
         SignInCommand request,
         CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(request.Email.Trim());
         if (user is null)
-            throw new UnauthorizedException(InvalidCredentialsMessage);
+            return ApiResponse<AuthResponse>.Fail(InvalidCredentialsMessage);
 
         var result = await _signInManager.CheckPasswordSignInAsync(
             user,
@@ -40,19 +40,21 @@ public sealed class SignInHandler
             lockoutOnFailure: true);
 
         if (!result.Succeeded)
-            throw new UnauthorizedException(InvalidCredentialsMessage);
+            return ApiResponse<AuthResponse>.Fail(InvalidCredentialsMessage);
 
         var roles = (await _userManager.GetRolesAsync(user)).ToArray();
         var token = _accessTokenService.Create(user, roles);
 
-        return new AuthResponse(
-            token.Value,
-            "Bearer",
-            token.ExpiresAtUtc,
-            new AuthUserDto(
-                user.Id,
-                user.FullName,
-                user.Email!,
-                roles));
+        return ApiResponse<AuthResponse>.Ok(
+            new AuthResponse(
+                token.Value,
+                "Bearer",
+                token.ExpiresAtUtc,
+                new AuthUserDto(
+                    user.Id,
+                    user.FullName,
+                    user.Email!,
+                    roles)),
+            "Signed in successfully.");
     }
 }

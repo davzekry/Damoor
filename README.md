@@ -1,220 +1,178 @@
 # Damoor
 
-Damoor is a .NET 9 e-commerce backend under active development for an apparel store. The solution contains a normalized catalog, cart, wishlist, review, ordering, guest-session, and identity data model, with an ASP.NET Core Web API and an initial product-listing feature.
+Damoor is a .NET 9 ASP.NET Core Web API for an e-commerce backend. The current implementation focuses on authentication, product catalog browsing, category management, product variant management, product image management, identity roles, SQL Server persistence, and Redis-backed infrastructure services.
 
 ## Overview
 
-Damoor is intended to support customers shopping for clothing products such as T-shirts, shorts, and trousers.
+Damoor provides API endpoints for a storefront-style catalog and administrative catalog maintenance.
 
-The implemented domain and persistence model supports:
-
-- Registered customers through ASP.NET Core Identity.
-- Guest shopping sessions identified by a session token.
-- Product categories, variants, inventory, pricing, and images.
-- Session-based carts and cart items.
-- Customer wishlists and reviews.
-- Registered and guest orders.
-- Historical order-item snapshots for product names, variant descriptions, quantities, and prices.
-- Hybrid deletion rules for catalog, transactional, and short-lived data.
-
-The HTTP API is still at an early stage. It currently exposes user signup, user sign-in, and an authenticated paginated product query. Checkout commands, cart endpoints, wishlist endpoints, review endpoints, and administrative catalog commands are not currently implemented.
+| Area | Description |
+| --- | --- |
+| Business purpose | E-commerce backend for managing and exposing products, categories, product variants, product images, users, carts, wishlists, orders, and reviews. |
+| Main functionality | Public category and product catalog queries, user sign-up/sign-in, admin-only category/product/variant/image commands, health checks, API versioning, and Swagger documentation. |
+| Target users | API consumers, storefront clients, administrators, and developers maintaining the backend. |
+| Key capabilities | JWT authentication, role-based authorization, CQRS-style request handlers, validation pipeline, SQL Server persistence, soft-delete support, Redis distributed cache registration, and standardized API responses. |
 
 ## Architecture
 
-The solution uses a **Clean Architecture-inspired layered design** with **CQRS and vertical-slice feature organization** in the Application and API projects.
-
-It is not strict Clean Architecture: `Damoor.Application` currently references `Damoor.Infrastructure`, and the product query handler accesses `DamoorDbContext` and `ICacheService` directly. No repository abstraction is currently implemented.
+The solution uses a Clean Architecture-style project split with vertical feature slices in the Application layer.
 
 ```mermaid
 flowchart LR
     Client["API Client"] --> API["Damoor.API"]
-    API --> Application["Damoor.Application"]
-    Application --> Domain["Damoor.Domain"]
-    Application --> Infrastructure["Damoor.Infrastructure"]
-    Infrastructure --> Domain
-    Infrastructure --> SQL["SQL Server"]
-    Infrastructure --> Redis["Redis"]
-    Infrastructure --> Files["Local File Storage"]
+    API --> App["Damoor.Application"]
+    App --> Domain["Damoor.Domain"]
+    App --> Infra["Damoor.Infrastructure"]
+    Infra --> Domain
+    Infra --> Sql["SQL Server"]
+    Infra --> Redis["Redis"]
 ```
-
-### Layer responsibilities
 
 | Project | Responsibility |
 | --- | --- |
-| `Damoor.API` | HTTP controllers, API versioning, Swagger, JWT bearer authentication, middleware, filters, rate-limiter definitions, health endpoint, and application startup |
-| `Damoor.Application` | MediatR requests and handlers, FluentValidation rules, pipeline behaviors, DTOs, pagination, and response models |
-| `Damoor.Domain` | Domain entities, order status, audit abstractions, soft-delete abstractions, and non-deletable markers |
-| `Damoor.Infrastructure` | EF Core, SQL Server, Identity stores, entity configurations, migrations, Redis caching, health checks, auditing/deletion interception, and local file storage |
+| `Damoor.API` | ASP.NET Core host, controllers, middleware, filters, Swagger, JWT authentication registration, API versioning, rate limiting, and health check endpoint mapping. |
+| `Damoor.Application` | MediatR commands/queries/handlers, DTO/result models, validation rules, response models, and pipeline behaviors. |
+| `Damoor.Domain` | Domain entities, common base entity types, soft-delete/non-delete markers, and domain enums. |
+| `Damoor.Infrastructure` | EF Core `DbContext`, entity configurations, migrations, Identity user/role setup, SQL Server registration, Redis cache service, local file service, and health check registrations. |
 
-### Project structure
+### Solution Structure
 
 ```text
 Damoor/
-├── Damoor.API/
-│   ├── Controllers/
-│   ├── Extensions/
-│   ├── Filters/
-│   ├── Middleware/
-│   └── Program.cs
-├── Damoor.Application/
-│   ├── Common/
-│   │   ├── Behaviours/
-│   │   ├── Exceptions/
-│   │   └── Models/
-│   └── Features/
-│       └── Products/
-├── Damoor.Domain/
-│   ├── Common/
-│   └── Entities/
-├── Damoor.Infrastructure/
-│   ├── Extensions/
-│   ├── Identity/
-│   ├── Interfaces/
-│   ├── Persistence/
-│   │   ├── Configurations/
-│   │   ├── Interceptors/
-│   │   └── Migrations/
-│   └── Services/
-├── AGENTS.md
-└── Damoor.sln
+|-- Damoor.API/
+|   |-- Controllers/
+|   |-- Extensions/
+|   |-- Filters/
+|   |-- Middleware/
+|   |-- Services/
+|   |-- Program.cs
+|   `-- appsettings.json
+|-- Damoor.Application/
+|   |-- Common/
+|   `-- Features/
+|       |-- Authentication/
+|       |-- Categories/
+|       `-- Products/
+|-- Damoor.Domain/
+|   |-- Common/
+|   `-- Entities/
+|-- Damoor.Infrastructure/
+|   |-- Extensions/
+|   |-- Identity/
+|   |-- Interfaces/
+|   |-- Persistence/
+|   `-- Services/
+|-- Damoor.sln
+`-- README.md
 ```
 
-### Patterns in use
+### Design Patterns and Runtime Flow
 
-- CQRS-style requests and handlers with MediatR.
-- Vertical slices for API and Application product features.
-- FluentValidation through a MediatR pipeline behavior.
-- Structured request timing through a MediatR logging behavior.
-- EF Core Fluent API with one configuration class per application entity.
-- Global query filters for soft-deleted entities and hidden catalog dependents.
-- A SaveChanges interceptor for UTC auditing and hybrid deletion behavior.
-- Standardized API response and pagination models.
-- Distributed caching through an `ICacheService` abstraction backed by Redis.
+| Pattern | Implementation |
+| --- | --- |
+| Clean Architecture | API, Application, Domain, and Infrastructure are separated into different projects. |
+| Vertical Slice Architecture | Application features are grouped by capability, such as `Authentication`, `Categories`, and `Products`. |
+| CQRS-style handlers | Commands and queries are represented as MediatR requests with dedicated handlers. |
+| Pipeline behaviors | `LoggingBehaviour<TRequest,TResponse>` logs request handling; `ValidationBehaviour<TRequest,TResponse>` runs FluentValidation validators. |
+| Repository pattern | Not identified during code analysis. Handlers use `DamoorDbContext` directly. |
+| Unit of Work | EF Core `DbContext` is used as the persistence unit of work. |
+| Soft delete | `ISoftDeletable` entities are converted from delete operations into soft deletes by `AuditableEntityInterceptor`. |
+| Non-deletable entities | Entities implementing `INonDeletable` throw during delete attempts. |
 
 ## Technology Stack
 
 | Category | Technology |
 | --- | --- |
-| Framework | .NET 9 / ASP.NET Core 9 |
-| Language | C# with nullable reference types and implicit usings |
-| Database | Microsoft SQL Server |
-| ORM | Entity Framework Core 9.0.15 |
-| Authentication | ASP.NET Core Identity with integer keys and JWT bearer authentication |
-| Authorization | Controller-level `[Authorize]`; roles and policies are not otherwise implemented |
-| Application messaging | MediatR 14.1.0 for in-process requests |
-| Validation | FluentValidation 12.1.1 |
-| Caching | Redis via `IDistributedCache` and StackExchange.Redis |
-| Logging | Built-in `ILogger`; Serilog packages and configuration are present but startup activation is currently disabled |
-| API documentation | Swashbuckle / Swagger and ASP.NET API Versioning |
-| Health monitoring | SQL Server DbContext and Redis health checks |
-| File storage | Local filesystem under `wwwroot/uploads` |
-| Testing | No test project identified during code analysis |
-| Background jobs | Not identified during code analysis |
-| Event bus / messaging | Not identified during code analysis |
-| External APIs | Not identified during code analysis |
-| Docker | Not identified during code analysis |
-| Kubernetes | Not identified during code analysis |
-| Cloud services | Not identified during code analysis |
+| Framework | .NET 9, ASP.NET Core Web API |
+| Database | SQL Server |
+| ORM | Entity Framework Core 9 |
+| Authentication | ASP.NET Core Identity, JWT Bearer tokens |
+| Authorization | Role-based authorization with `AdminOnly` policy |
+| Validation | FluentValidation |
+| Mediator/CQRS | MediatR |
+| Logging | Built-in `ILogger`; Serilog packages and extension exist but Serilog is commented out in `Program.cs` |
+| Testing | Not identified during code analysis |
+| Caching | Redis distributed cache registration with `RedisCacheService` |
+| Messaging | Not identified during code analysis |
+| API Documentation | Swagger/OpenAPI via Swashbuckle |
+| Health Checks | ASP.NET Core health checks for EF Core DbContext and Redis |
+| File Storage | Local file service writes under `wwwroot/uploads` |
 
 ## Features
 
-### Currently exposed API functionality
-
-- Versioned API route structure.
-- Public user signup and sign-in endpoints.
-- JWT access-token issuance with User and Admin role claims.
-- Idempotent role seeding and optional secret-backed Admin bootstrap.
-- Authenticated product-list endpoint.
-- Product search by name or description.
-- Product sorting by name, minimum variant price, or creation date.
-- Stable pagination using product ID as a tie-breaker.
-- Minimum variant price and total variant stock projection.
-- Redis caching for product requests without a search term.
-- Standard response envelopes with pagination metadata.
-- Swagger UI in the Development environment.
-- SQL Server and Redis health checks at `/health`.
-
-### Implemented domain and persistence capabilities
-
-- Categories and products.
-- Product variants with:
-  - Unique SKU.
-  - Size and color.
-  - Variant-specific price.
-  - Stock quantity.
-  - Unique active `(ProductId, Size, Color)` combinations.
-- Multiple product images with at most one main image per product.
-- Shopping sessions for guest and registered users.
-- One cart per shopping session.
-- Cart items linked to product variants.
-- One wishlist per registered user.
-- Wishlist items linked to products.
-- Product reviews with ratings constrained to 1–5.
-- Registered-user and guest orders.
-- Order statuses:
-  - `Pending`
-  - `Confirmed`
-  - `Processing`
-  - `Shipped`
-  - `Delivered`
-  - `Cancelled`
-- Order-item snapshots independent of future catalog changes.
-- Optional order-item links to product variants for historical safety.
-- Integer identifiers across application and Identity entities.
-
-### Data retention behavior
-
-| Behavior | Entities |
+| Feature | Status in Codebase |
 | --- | --- |
-| Soft delete | `AppUser`, `Category`, `Product`, `ProductVariant`, `Review` |
-| Hard delete | `ShoppingSession`, `Cart`, `CartItem`, `Wishlist`, `WishlistItem`, `ProductImage` |
-| Deletion rejected | `Order`, `OrderItem` |
-
-Soft-deleted records store `IsDeleted` and `DeletedAt`. Orders and order items are permanent transactional records; cancellation is represented through `OrderStatus`.
+| User sign-up | Implemented with ASP.NET Core Identity, default `User` role assignment, validation, duplicate email handling, and JWT generation. |
+| User sign-in | Implemented with password verification, lockout-on-failure behavior, role loading, and JWT generation. |
+| Role initialization | Implemented at startup for `User` and `Admin` roles. |
+| Optional admin seed | Implemented through `AdminSeed` configuration. |
+| Public category listing | Implemented at `GET /api/v1/Categories`. |
+| Public category details | Implemented at `GET /api/v1/Categories/{id}`. |
+| Admin category creation | Implemented at `POST /api/v1/Admin/Categories`. |
+| Admin category update | Implemented at `PUT /api/v1/Admin/Categories/{id}`. |
+| Admin category delete | Implemented at `DELETE /api/v1/Admin/Categories/{id}`. |
+| Public product listing | Implemented at `GET /api/v1/Products` with pagination, filtering, and sorting. |
+| Public product details | Implemented at `GET /api/v1/Products/{id}` with images, variants, stock, and review summary fields. |
+| Public product variants | Implemented at `GET /api/v1/Products/{id}/variants`. |
+| Admin product creation | Implemented at `POST /api/v1/Admin/Products`. |
+| Admin product update | Implemented at `PUT /api/v1/Admin/Products/{id}`. |
+| Admin product delete | Implemented at `DELETE /api/v1/Admin/Products/{id}`. |
+| Admin product image creation | Implemented at `POST /api/v1/Admin/Products/{productId}/images`. |
+| Admin product image delete | Implemented at `DELETE /api/v1/Admin/ProductImages/{id}`. |
+| Admin set main product image | Implemented at `PUT /api/v1/Admin/ProductImages/{id}/main`. |
+| Admin product variant creation | Implemented at `POST /api/v1/Admin/Products/{productId}/variants`. |
+| Admin product variant update | Implemented at `PUT /api/v1/Admin/ProductVariants/{id}`. |
+| Admin product variant delete | Implemented at `DELETE /api/v1/Admin/ProductVariants/{id}`. |
+| API versioning | Implemented with URL segment versioning. Default version is `1.0`. |
+| Rate limiting | Implemented globally as available policies; strict policy is applied to sign-up and sign-in. |
+| Health check endpoint | Implemented at `GET /health`. |
+| Standard API response envelope | Implemented through `ApiResponse<T>`. |
+| Exception handling middleware | Implemented for validation, bad request, unauthorized, conflict, not found, and unexpected errors. |
+| Idempotency filter | Implemented but not identified as applied to any action during code analysis. |
+| Cart, wishlist, order, and review domain entities | Domain and EF mappings exist. API endpoints for these areas were not identified during code analysis. |
 
 ## Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- SQL Server accessible through a valid connection string.
-- Redis accessible through the configured Redis connection string.
-- Visual Studio 2022 with .NET 9 support, Visual Studio Code, or another compatible editor.
-- Entity Framework Core CLI tools if using `dotnet ef`:
-
-```bash
-dotnet tool install --global dotnet-ef --version 9.0.15
-```
-
-The EF Core Package Manager Console tools are already referenced by the Infrastructure project.
+| Requirement | Version / Notes |
+| --- | --- |
+| .NET SDK | .NET 9 SDK. The local SDK detected during analysis was `9.0.102`. |
+| SQL Server | Required for `ConnectionStrings:DefaultConnection`. |
+| Redis | Required by Redis cache registration and Redis health check through `ConnectionStrings:Redis`. |
+| EF Core CLI | Required for migration commands, if not already installed. |
+| External APIs | Not identified during code analysis. |
+| Cloud services | Not identified during code analysis. |
 
 ## Configuration
 
-### Configuration sources
+Configuration is read from ASP.NET Core configuration providers, including `appsettings.json`, environment-specific settings, user secrets, and environment variables.
 
-The API uses standard ASP.NET Core configuration. Values can come from:
+The API validates the following values at startup:
 
-1. `appsettings.json`
-2. `appsettings.{Environment}.json`
-3. .NET User Secrets in local Development
-4. Environment variables or a deployment secret store
+| Key | Required | Purpose |
+| --- | --- | --- |
+| `ConnectionStrings:DefaultConnection` | Yes | SQL Server connection string for EF Core and Identity. |
+| `ConnectionStrings:Redis` | Yes for registered Redis services and health check | Redis connection string. |
+| `JwtSettings:SecretKey` | Yes | Symmetric signing key. Must be at least 32 characters. |
+| `JwtSettings:Issuer` | Yes | JWT issuer. |
+| `JwtSettings:Audience` | Yes | JWT audience. |
+| `JwtSettings:ExpiryMinutes` | Yes | Access token lifetime in minutes. |
+| `AdminSeed:Enabled` | No | Enables optional admin account seeding. |
+| `AdminSeed:FullName` | Required when admin seeding is enabled | Seeded admin full name. |
+| `AdminSeed:Email` | Required when admin seeding is enabled | Seeded admin email. |
+| `AdminSeed:Password` | Required when admin seeding is enabled | Seeded admin password. |
 
-User Secrets and environment variables override values from `appsettings.json`.
-
-The application validates the database connection string and JWT signing key during startup. Startup fails with an actionable error when either value is absent or when the JWT key is shorter than 32 characters.
-
-### Non-secret configuration
-
-`Damoor.API/appsettings.json` contains the configuration shape:
+Example local configuration:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "",
+    "DefaultConnection": "Server=localhost;Database=Damoor;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;",
     "Redis": "localhost:6379"
   },
   "JwtSettings": {
-    "SecretKey": "",
-    "Issuer": "MyApp",
-    "Audience": "MyAppUsers",
+    "SecretKey": "replace-with-a-secure-secret-key-at-least-32-characters",
+    "Issuer": "Damoor",
+    "Audience": "DamoorClients",
     "ExpiryMinutes": 60
   },
   "AdminSeed": {
@@ -222,72 +180,30 @@ The application validates the database connection string and JWT signing key dur
     "FullName": "",
     "Email": "",
     "Password": ""
-  },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Information",
-      "Override": {
-        "Microsoft": "Warning",
-        "System": "Warning"
-      }
-    }
   }
 }
 ```
 
-Do not commit database passwords, JWT signing keys, or Admin passwords.
+### Secrets Management
 
-### Local secrets
-
-Configure local Development secrets against the API project:
+`Damoor.API.csproj` defines a `UserSecretsId`, so local secrets can be stored with .NET User Secrets:
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=Damoor;Trusted_Connection=True;TrustServerCertificate=True" --project Damoor.API
-dotnet user-secrets set "JwtSettings:SecretKey" "replace-with-a-random-secret-of-at-least-32-characters" --project Damoor.API
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=Damoor;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;" --project Damoor.API
+dotnet user-secrets set "ConnectionStrings:Redis" "localhost:6379" --project Damoor.API
+dotnet user-secrets set "JwtSettings:SecretKey" "replace-with-a-secure-secret-key-at-least-32-characters" --project Damoor.API
+dotnet user-secrets set "JwtSettings:Issuer" "Damoor" --project Damoor.API
+dotnet user-secrets set "JwtSettings:Audience" "DamoorClients" --project Damoor.API
 ```
 
-To bootstrap the first Admin, also configure:
-
-```bash
-dotnet user-secrets set "AdminSeed:Enabled" "true" --project Damoor.API
-dotnet user-secrets set "AdminSeed:FullName" "Store Administrator" --project Damoor.API
-dotnet user-secrets set "AdminSeed:Email" "admin@example.com" --project Damoor.API
-dotnet user-secrets set "AdminSeed:Password" "<strong-password>" --project Damoor.API
-```
-
-List configured keys:
-
-```bash
-dotnet user-secrets list --project Damoor.API
-```
-
-Visual Studio users can right-click `Damoor.API` and select **Manage User Secrets**.
-
-### Production environment variables
-
-Use double underscores for nested configuration keys:
-
-```text
-ConnectionStrings__DefaultConnection
-ConnectionStrings__Redis
-JwtSettings__SecretKey
-JwtSettings__Issuer
-JwtSettings__Audience
-JwtSettings__ExpiryMinutes
-AdminSeed__Enabled
-AdminSeed__FullName
-AdminSeed__Email
-AdminSeed__Password
-```
-
-User Secrets are intended only for local development.
+Do not commit real production connection strings, passwords, or JWT signing keys.
 
 ## Getting Started
 
 ### Clone Repository
 
 ```bash
-git clone https://github.com/davzekry/Damoor.git
+git clone <repository-url>
 cd Damoor
 ```
 
@@ -297,25 +213,10 @@ cd Damoor
 dotnet restore Damoor.sln
 ```
 
-### Configure Secrets
-
-```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<your-sql-server-connection-string>" --project Damoor.API
-dotnet user-secrets set "JwtSettings:SecretKey" "<your-random-32+-character-signing-key>" --project Damoor.API
-```
-
-Ensure Redis is available at `localhost:6379`, or update `ConnectionStrings:Redis`.
-
 ### Build
 
 ```bash
 dotnet build Damoor.sln
-```
-
-### Apply Database Migrations
-
-```bash
-dotnet ef database update --project Damoor.Infrastructure --startup-project Damoor.API
 ```
 
 ### Run
@@ -324,367 +225,309 @@ dotnet ef database update --project Damoor.Infrastructure --startup-project Damo
 dotnet run --project Damoor.API
 ```
 
-The checked-in launch profile uses:
-
-- `https://localhost:7245`
-- `http://localhost:5015`
-
-Actual URLs are printed by ASP.NET Core when the application starts.
+The development launch profile is defined in `Damoor.API/Properties/launchSettings.json`.
 
 ## Database Setup
 
-The project uses SQL Server through `Microsoft.EntityFrameworkCore.SqlServer`.
+The project uses Entity Framework Core with SQL Server. The `DamoorDbContext` lives in `Damoor.Infrastructure/Persistence`, and the migrations assembly is `Damoor.Infrastructure`.
 
-The initial migration is stored in:
+An initial migration exists:
 
 ```text
-Damoor.Infrastructure/Persistence/Migrations/
+Damoor.Infrastructure/Persistence/Migrations/20260619123031_InitialCreate.cs
 ```
 
-Apply all pending migrations:
+Apply migrations:
 
 ```bash
 dotnet ef database update --project Damoor.Infrastructure --startup-project Damoor.API
 ```
 
-Create a new migration after changing the EF model:
+Create a new migration:
 
 ```bash
-dotnet ef migrations add <MigrationName> \
-  --project Damoor.Infrastructure \
-  --startup-project Damoor.API \
-  --output-dir Persistence/Migrations
+dotnet ef migrations add <MigrationName> --project Damoor.Infrastructure --startup-project Damoor.API --output-dir Persistence/Migrations
 ```
 
-Remove the latest unapplied migration:
+### Seed Data
 
-```bash
-dotnet ef migrations remove \
-  --project Damoor.Infrastructure \
-  --startup-project Damoor.API
+At application startup, the identity initializer ensures the `User` and `Admin` roles exist.
+
+Optional admin seeding is controlled by:
+
+```json
+{
+  "AdminSeed": {
+    "Enabled": true,
+    "FullName": "Admin User",
+    "Email": "admin@example.com",
+    "Password": "ChangeMe1"
+  }
+}
 ```
 
-No database seed implementation was identified during code analysis.
+No general product/category seed data was identified during code analysis.
 
 ## API Documentation
 
-Swagger is enabled only in the Development environment.
+Swagger/OpenAPI is configured and enabled only in the Development environment.
 
-After starting the API, open:
-
-```text
-https://localhost:7245/swagger
-```
-
-Swagger defines a Bearer security scheme. Enter credentials in this format:
+After running the API in Development, open:
 
 ```text
-Bearer <JWT>
+/swagger
 ```
 
-### Implemented endpoint
+Swagger includes a Bearer token security definition. Use this format:
 
-| Method | Route | Authentication | Description |
+```text
+Bearer <access-token>
+```
+
+### Important Endpoints
+
+| Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/v1/Auth/sign-up` | Anonymous | Creates a normal user, assigns the `User` role, and returns a JWT |
-| `POST` | `/api/v1/Auth/sign-in` | Anonymous | Authenticates by email and returns a JWT |
-| `GET` | `/api/v1/Products` | Required | Returns paginated products with category, minimum variant price, and total stock |
-| `GET` | `/health` | Not explicitly restricted | Returns SQL Server and Redis health status |
+| `POST` | `/api/v1/Auth/sign-up` | Anonymous | Create a user account and return a JWT. |
+| `POST` | `/api/v1/Auth/sign-in` | Anonymous | Authenticate a user and return a JWT. |
+| `GET` | `/api/v1/Categories` | Anonymous | List categories. |
+| `GET` | `/api/v1/Categories/{id}` | Anonymous | Get category details. |
+| `GET` | `/api/v1/Products` | Anonymous | List products with pagination, filtering, and sorting. |
+| `GET` | `/api/v1/Products/{id}` | Anonymous | Get product details. |
+| `GET` | `/api/v1/Products/{id}/variants` | Anonymous | List variants for a product. |
+| `POST` | `/api/v1/Admin/Categories` | Admin | Create category. |
+| `PUT` | `/api/v1/Admin/Categories/{id}` | Admin | Update category. |
+| `DELETE` | `/api/v1/Admin/Categories/{id}` | Admin | Delete category. |
+| `POST` | `/api/v1/Admin/Products` | Admin | Create product. |
+| `PUT` | `/api/v1/Admin/Products/{id}` | Admin | Update product. |
+| `DELETE` | `/api/v1/Admin/Products/{id}` | Admin | Delete product. |
+| `POST` | `/api/v1/Admin/Products/{productId}/images` | Admin | Add product image by URL. |
+| `POST` | `/api/v1/Admin/Products/{productId}/variants` | Admin | Add product variant. |
+| `DELETE` | `/api/v1/Admin/ProductImages/{id}` | Admin | Delete product image. |
+| `PUT` | `/api/v1/Admin/ProductImages/{id}/main` | Admin | Set image as main product image. |
+| `PUT` | `/api/v1/Admin/ProductVariants/{id}` | Admin | Update product variant. |
+| `DELETE` | `/api/v1/Admin/ProductVariants/{id}` | Admin | Delete product variant. |
+| `GET` | `/health` | Not explicitly protected | Return application health check status. |
 
-Product query parameters:
+### Product Query Parameters
 
-| Parameter | Default | Rules |
-| --- | --- | --- |
-| `page` | `1` | Must be at least 1 |
-| `pageSize` | `10` | Must be between 1 and 100 |
-| `search` | `null` | Maximum 100 characters; searches name and description |
-| `sortBy` | `name` | Validator currently accepts `name`, `brand`, `price`, and `createdat` |
-| `asc` | `true` | Controls ascending or descending ordering |
+`GET /api/v1/Products` accepts:
 
-`brand` is accepted by the validator but no Brand entity or brand-specific ordering is implemented; it currently falls back to name ordering.
-
-Use the access token returned by signup or sign-in to call endpoints decorated with `[Authorize]`.
+| Parameter | Description |
+| --- | --- |
+| `Page` | Page number. Must be at least `1`. Default is `1`. |
+| `PageSize` | Page size. Must be between `1` and `100`. Default is `10`. |
+| `Search` | Searches product name and description. Maximum length is `100`. |
+| `CategoryId` | Filters by category. |
+| `MinPrice` | Minimum variant price. |
+| `MaxPrice` | Maximum variant price. |
+| `Size` | Variant size filter. Maximum length is `32`. |
+| `Color` | Variant color filter. Maximum length is `64`. |
+| `InStock` | Filters variants with stock greater than zero when `true`; stock equal to zero when `false`. |
+| `SortBy` | Allowed values: `name`, `price`, `createdat`. |
+| `Asc` | Sort direction. Default is `true`. |
 
 ## Authentication & Authorization
 
-### Identity
+Authentication uses ASP.NET Core Identity and JWT Bearer tokens.
 
-The solution uses:
-
-- `AppUser : IdentityUser<int>`
-- `IdentityRole<int>`
-- EF Core Identity stores in `DamoorDbContext`
-- Unique active normalized usernames and emails
-- Soft deletion for application users
-
-Identity password settings:
-
-| Setting | Value |
+| Concern | Implementation |
 | --- | --- |
-| Digit required | Yes |
-| Minimum length | 8 |
-| Uppercase required | Yes |
-| Non-alphanumeric required | No |
-| Unique email required | Yes |
-| Maximum failed attempts | 5 |
-| Lockout duration | 15 minutes |
+| User store | ASP.NET Core Identity backed by EF Core and SQL Server. |
+| User entity | `AppUser : IdentityUser<int>` with `FullName`, audit fields, soft-delete fields, and navigation properties. |
+| Token generation | `JwtAccessTokenService` creates HMAC-SHA256 signed JWTs. |
+| Claims | Subject, email, name, JWT ID, and one `role` claim per assigned role. |
+| Roles | `User`, `Admin`. |
+| Policies | `AdminOnly`, requiring the `Admin` role. |
+| Protected endpoints | Admin controllers under `/api/v1/Admin/...`. |
+| Anonymous endpoints | Auth, public Categories, and public Products controllers. |
+| Password rules | Require digit, uppercase letter, minimum length of 5, and no non-alphanumeric requirement. |
+| Lockout | Maximum 5 failed access attempts; default lockout duration is 15 minutes. |
 
-### JWT authentication and roles
-
-JWT bearer authentication validates:
-
-- Issuer
-- Audience
-- Token lifetime
-- Signing key
-
-Signup and sign-in issue access tokens containing:
-
-- User ID in `sub`
-- Email
-- Full name in `name`
-- Unique token ID in `jti`
-- One `role` claim for each assigned role
-
-The `User` and `Admin` roles are seeded at startup. Public signup always assigns only `User`. The `AdminOnly` policy requires the `Admin` role. Refresh tokens are not implemented.
-
-An initial Admin can optionally be created at startup through `AdminSeed` configuration. Keep the Admin password in User Secrets, environment variables, or a deployment secret store; never commit it.
 ## Project Structure
 
 ### `Damoor.API`
 
-- `Controllers/`: MVC controllers and vertical-slice endpoint partial classes.
-- `Extensions/`: service registration for JWT, Swagger, API versioning, rate limiting, logging, and configuration validation.
-- `Filters/`: Swagger response metadata and a reusable idempotency action filter.
-- `Middleware/`: exception-to-HTTP-response handling.
-- `Program.cs`: composition root and HTTP pipeline.
+| Folder/File | Purpose |
+| --- | --- |
+| `Program.cs` | Application startup, service registration, middleware pipeline, Swagger, rate limiting, authentication, authorization, static files, controllers, and health checks. |
+| `Controllers/` | API controllers and partial controller action files. |
+| `Controllers/Admin/` | Admin-only product, category, image, and variant commands. |
+| `Extensions/` | Startup extensions for authentication, Swagger, API versioning, rate limiting, logging, and configuration validation. |
+| `Filters/` | Swagger operation filter and idempotency filter. |
+| `Middleware/ExceptionHandlingMiddleware.cs` | Converts known exceptions to standard API error responses. |
+| `Services/JwtAccessTokenService.cs` | Generates JWT access tokens. |
 
 ### `Damoor.Application`
 
-- `Common/Behaviours/`: MediatR validation and logging pipeline behaviors.
-- `Common/Models/`: API response envelopes and pagination.
-- `Features/Products/Queries/GetAllProducts/`: the implemented product query, handler, validator, and DTO.
-
-Command and additional query folders are declared in the project file, but implementations were not identified during code analysis.
+| Folder/File | Purpose |
+| --- | --- |
+| `DependencyInjection.cs` | Registers MediatR, FluentValidation validators, logging behavior, and validation behavior. |
+| `Common/Behaviours/` | MediatR pipeline behaviors. |
+| `Common/Exceptions/` | Application exception types mapped by middleware. |
+| `Common/Models/` | `ApiResponse<T>`, pagination metadata, and paginated list model. |
+| `Features/Authentication/` | Sign-up/sign-in commands, handlers, validators, and auth response models. |
+| `Features/Categories/` | Category commands and queries. |
+| `Features/Products/` | Product commands, queries, result DTOs, image models, and variant models. |
 
 ### `Damoor.Domain`
 
-Contains:
-
-- Audit base entity.
-- Soft-delete and non-deletable abstractions.
-- Catalog entities.
-- Shopping-session and cart entities.
-- Wishlist entities.
-- Order entities and status.
-- Review entity.
-
-The Domain project has no external NuGet package references.
+| Folder/File | Purpose |
+| --- | --- |
+| `Common/BaseEntity.cs` | Shared integer ID and audit timestamps. |
+| `Common/SoftDeletableEntity.cs` | Base class for soft-deletable entities. |
+| `Common/ISoftDeletable.cs` | Soft-delete contract. |
+| `Common/INonDeletable.cs` | Marker for entities that should not be deleted. |
+| `Entities/` | Domain entities for categories, products, variants, images, sessions, carts, wishlists, orders, order items, and reviews. |
+| `Entities/Enums/OrderStatus.cs` | Order lifecycle enum. |
 
 ### `Damoor.Infrastructure`
 
-- `Identity/`: the integer-key `AppUser`.
-- `Persistence/`: `DamoorDbContext`, Fluent API configurations, interceptor, and migrations.
-- `Services/`: Redis cache and local file storage implementations.
-- `Interfaces/`: cache and file-service contracts.
-- `Extensions/`: SQL Server, Identity, Redis, and service registration.
+| Folder/File | Purpose |
+| --- | --- |
+| `DependencyInjection.cs` | Registers database, identity, caching, file service, and health checks. |
+| `Extensions/DatabaseExtensions.cs` | Registers SQL Server `DamoorDbContext` with retry and command timeout settings. |
+| `Extensions/IdentityExtensions.cs` | Registers ASP.NET Core Identity. |
+| `Extensions/CachingExtensions.cs` | Registers StackExchange Redis distributed cache and `ICacheService`. |
+| `Identity/` | Identity user, auth constants, JWT/admin seed settings, and role/admin initializer. |
+| `Interfaces/` | `ICacheService` and `IFileService`. |
+| `Persistence/DamoorDbContext.cs` | EF Core DbContext and DbSets. |
+| `Persistence/Configurations/` | EF Core table, key, relationship, index, constraint, precision, and query filter mappings. |
+| `Persistence/Interceptors/AuditableEntityInterceptor.cs` | Applies audit timestamps, soft-delete behavior, and non-delete protection. |
+| `Persistence/Migrations/` | EF Core migrations. |
+| `Services/LocalFileService.cs` | Stores uploaded file streams under `wwwroot/uploads`. |
+| `Services/RedisCacheService.cs` | JSON-based distributed cache wrapper. |
+
+## Domain Model Summary
+
+| Entity | Purpose |
+| --- | --- |
+| `Category` | Product grouping with name and optional description. Soft-deletable. |
+| `Product` | Catalog item with category, variants, images, wishlist items, and reviews. Soft-deletable. |
+| `ProductVariant` | SKU, size, color, price, stock quantity. Soft-deletable. |
+| `ProductImage` | Product image URL and main image marker. |
+| `ShoppingSession` | Session token, optional user, expiration, and cart relationship. |
+| `Cart` | One cart per shopping session. |
+| `CartItem` | Cart line item tied to a product variant. |
+| `Wishlist` | User wishlist. |
+| `WishlistItem` | Wishlist product entry. |
+| `Order` | User or guest order with total, status, shipping address, and line items. Non-deletable. |
+| `OrderItem` | Order line snapshot with product name, variant description, quantity, and unit price. Non-deletable. |
+| `Review` | Product review with rating and optional comment. Soft-deletable. |
+| `AppUser` | Identity user with full name, audit fields, soft-delete fields, and navigation properties. |
 
 ## Logging & Monitoring
 
-### Logging
-
-The application currently uses the built-in `ILogger` abstractions and a MediatR logging behavior.
-
-Serilog packages, configuration, and an extension for console plus SQL Server logging are present. However, Serilog startup calls are commented out in `Program.cs`, so the custom Serilog pipeline and SQL `Logs` table are not active.
-
-### Health checks
-
-The `/health` endpoint checks:
-
-- `DamoorDbContext` / SQL Server connectivity.
-- Redis connectivity.
-
-The response uses `HealthChecks.UI.Client` formatting.
-
-No metrics, distributed tracing, APM integration, or alerting system was identified during code analysis.
-
-## Caching
-
-Redis is registered through `AddStackExchangeRedisCache` with the instance prefix:
-
-```text
-Damoor:
-```
-
-The product-list query caches requests without a search term for five minutes. Search requests bypass the cache.
-
-An idempotency filter is implemented for POST and PUT requests using the `X-Idempotency-Key` header and a 24-hour Redis entry. The filter is registered in dependency injection but is not currently applied to any controller or endpoint.
-
-## Rate Limiting
-
-Two named policies are registered:
-
-| Policy | Behavior |
+| Concern | Implementation |
 | --- | --- |
-| `fixed` | 10 requests per 10 seconds, with a queue limit of 2 |
-| `strict` | 5 requests per minute using a sliding window |
-
-The rate-limiting middleware is enabled, but neither a global limiter nor endpoint-level rate-limit attributes are currently configured. The named policies therefore do not currently protect an endpoint.
-
-## Local File Storage
-
-`LocalFileService` stores uploaded files under:
-
-```text
-wwwroot/uploads
-```
-
-It returns URLs in the form `/uploads/{generated-file-name}`, and static-file middleware is enabled. No upload endpoint currently uses this service.
+| Request logging | MediatR `LoggingBehaviour` logs request name, payload, and elapsed time. |
+| Exception logging | `ExceptionHandlingMiddleware` logs validation warnings and unhandled exceptions. |
+| Serilog | `Serilog.AspNetCore` and `Serilog.Sinks.MSSqlServer` are referenced, and `LoggingExtensions.AddSerilog` exists. Serilog registration and request logging are commented out in `Program.cs`. |
+| Health checks | `/health` checks EF Core DbContext and Redis. |
+| Monitoring integrations | Not identified during code analysis. |
+| Log locations | Console and SQL Server sink are configured in the Serilog extension, but inactive unless Serilog is enabled in startup. |
 
 ## Testing
 
-No unit-test or integration-test project was identified during code analysis.
+No test projects were identified in the solution during code analysis.
 
-The following command builds the solution but currently has no test assemblies to execute:
+If tests are added later, run them with:
 
 ```bash
 dotnet test Damoor.sln
 ```
 
-Recommended future coverage includes:
+Recommended test coverage based on current implementation:
 
-- Product query validation, sorting, paging, and caching.
-- Entity relationship and database constraint integration tests.
-- Soft-delete, hard-delete, and protected order deletion behavior.
-- JWT authentication and authorization.
-- Redis cache behavior and outage handling.
-- Migration application against a disposable SQL Server database.
-- Health-check responses.
+| Test Type | Recommended Coverage |
+| --- | --- |
+| Unit tests | Validators, handlers, token service, pagination/filtering/sorting logic, duplicate checks, soft-delete behavior. |
+| Integration tests | Auth flow, admin authorization, public catalog endpoints, database mappings, exception middleware responses, health checks. |
+| Regression tests | Product query filters, role initialization, admin seed behavior, unique category/product variant constraints, main image uniqueness. |
 
 ## Deployment
 
-No Dockerfile, Docker Compose configuration, Kubernetes manifests, or infrastructure-as-code files were identified during code analysis.
+Docker support was not identified during code analysis. Kubernetes support was not identified during code analysis.
 
-A deployment must provide:
+For non-container deployment:
 
-- .NET 9 runtime.
-- SQL Server connectivity.
-- Redis connectivity.
-- Writable storage if `LocalFileService` is used.
-- Required configuration through environment variables or a deployment secret store.
-- HTTPS termination and production-safe logging/monitoring.
+1. Provide production values for SQL Server, Redis, JWT settings, and optional admin seed through the deployment environment secret store.
+2. Apply EF Core migrations to the target database.
+3. Run the `Damoor.API` project or published API artifact.
+4. Ensure the API can reach SQL Server and Redis.
+5. Ensure file system permissions allow writes to `wwwroot/uploads` if `LocalFileService` is used.
 
-Apply migrations as a controlled deployment step:
+Publish example:
 
 ```bash
-dotnet ef database update --project Damoor.Infrastructure --startup-project Damoor.API
+dotnet publish Damoor.API -c Release -o ./publish
 ```
 
-Avoid storing production secrets in `appsettings.json`.
+Run published output:
+
+```bash
+dotnet ./publish/Damoor.API.dll
+```
 
 ## CI/CD
 
-A `.github` directory exists, but no workflow files were identified during code analysis.
+CI/CD configuration was not identified during code analysis.
 
-Azure DevOps, GitLab CI, Jenkins, and other CI/CD configurations were not identified during code analysis.
+No GitHub Actions, Azure DevOps, GitLab CI, Jenkins, Dockerfile, Docker Compose file, or Kubernetes manifests were found in the analyzed repository files.
 
-## Major Dependencies
+## Dependencies
 
-| Dependency | Purpose |
-| --- | --- |
-| `Microsoft.EntityFrameworkCore.SqlServer` | SQL Server EF Core provider |
-| `Microsoft.EntityFrameworkCore.Design` / `Tools` | Design-time migrations and EF tooling |
-| `Microsoft.AspNetCore.Identity.EntityFrameworkCore` | Identity persistence through EF Core |
-| `Microsoft.AspNetCore.Authentication.JwtBearer` | JWT bearer authentication |
-| `MediatR` | In-process CQRS request dispatch and pipeline behaviors |
-| `FluentValidation` | Request validation |
-| `Microsoft.Extensions.Caching.StackExchangeRedis` | Distributed Redis cache |
-| `AspNetCore.HealthChecks.Redis` | Redis health checks |
-| `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` | EF Core health checks |
-| `Asp.Versioning.*` | URL-segment API versioning and API explorer integration |
-| `Swashbuckle.AspNetCore` | Swagger/OpenAPI generation and UI |
-| `Serilog.AspNetCore` | Optional structured logging integration |
-| `Serilog.Sinks.MSSqlServer` | Optional SQL Server log sink |
+| Dependency | Project | Purpose |
+| --- | --- | --- |
+| `Asp.Versioning.Http` | `Damoor.API` | API versioning support. |
+| `Asp.Versioning.Mvc.ApiExplorer` | `Damoor.API` | API version explorer integration for Swagger. |
+| `AspNetCore.HealthChecks.UI.Client` | `Damoor.API` | Health check response writer. |
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | `Damoor.API` | JWT bearer authentication. |
+| `Microsoft.AspNetCore.OpenApi` | `Damoor.API` | OpenAPI support. |
+| `Swashbuckle.AspNetCore` | `Damoor.API` | Swagger generation and UI. |
+| `Serilog.AspNetCore` | `Damoor.API`, `Damoor.Infrastructure` | Serilog integration package. |
+| `FluentValidation` | `Damoor.Application` | Request validation. |
+| `FluentValidation.DependencyInjectionExtensions` | `Damoor.Application` | Validator registration. |
+| `MediatR` | `Damoor.Application` | Mediator request/handler pattern. |
+| `Microsoft.AspNetCore.Identity.EntityFrameworkCore` | `Damoor.Infrastructure` | Identity persistence over EF Core. |
+| `Microsoft.EntityFrameworkCore.SqlServer` | `Damoor.Infrastructure` | SQL Server provider. |
+| `Microsoft.EntityFrameworkCore.Tools` | `Damoor.Infrastructure` | EF Core migration tooling. |
+| `Microsoft.EntityFrameworkCore.Design` | `Damoor.API` | EF Core design-time services. |
+| `Microsoft.Extensions.Caching.StackExchangeRedis` | `Damoor.Infrastructure` | Redis distributed cache. |
+| `AspNetCore.HealthChecks.Redis` | `Damoor.Infrastructure` | Redis health check. |
+| `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` | `Damoor.Infrastructure` | EF Core health check. |
+| `Serilog.Sinks.MSSqlServer` | `Damoor.Infrastructure` | SQL Server sink for Serilog. |
 
 ## Troubleshooting
 
-### `ConnectionStrings:DefaultConnection is required`
-
-Configure the SQL Server connection string through User Secrets:
-
-```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<connection-string>" --project Damoor.API
-```
-
-### `JwtSettings:SecretKey is required`
-
-Configure a random key containing at least 32 characters:
-
-```bash
-dotnet user-secrets set "JwtSettings:SecretKey" "<32+-character-secret>" --project Damoor.API
-```
-
-### Redis connection failures
-
-Confirm Redis is running and that `ConnectionStrings:Redis` is correct. The default value is:
-
-```text
-localhost:6379
-```
-
-The product endpoint uses Redis for cacheable requests, and `/health` checks Redis connectivity.
-
-### EF tools cannot load the startup project
-
-Use both the persistence and startup project arguments:
-
-```bash
-dotnet ef migrations list --project Damoor.Infrastructure --startup-project Damoor.API
-```
-
-### Swagger returns `401 Unauthorized`
-
-The products controller requires a valid Bearer token. Create an account through `/api/v1/Auth/sign-up` or sign in through `/api/v1/Auth/sign-in`, then enter the returned token in Swagger's authorization dialog.
-
-### Product endpoint fails after querying the database
-
-The current product handler declares an `ILogger<GetAllProductsHandler>` field but does not inject it through the constructor. A cache miss can reach a logging call with an uninitialized logger. This is a known implementation issue.
-
-### Development exception responses differ from production
-
-The custom exception-handling middleware is currently registered only outside the Development environment.
+| Issue | Cause | Resolution |
+| --- | --- | --- |
+| Application fails at startup with missing `ConnectionStrings:DefaultConnection` | Required SQL Server connection string is not configured. | Configure it in user secrets, environment variables, or deployment secrets. |
+| Application fails at startup with missing or short `JwtSettings:SecretKey` | JWT secret is required and must be at least 32 characters. | Configure a secure secret key of at least 32 characters. |
+| `/health` reports Redis failure | Redis is not running or `ConnectionStrings:Redis` is incorrect. | Start Redis or correct the Redis connection string. |
+| Admin endpoints return `401` | Request is missing a valid bearer token. | Sign in and send `Authorization: Bearer <token>`. |
+| Admin endpoints return `403` | Authenticated user does not have the `Admin` role. | Assign the user to `Admin` or enable valid admin seeding. |
+| Duplicate category name fails | Category name has a unique filtered index and handler duplicate check. | Use a unique category name. |
+| Duplicate SKU or size/color variant fails | Product variant configuration and handlers enforce uniqueness. | Use a unique SKU and unique size/color per product. |
+| Product list sorting validation fails | `SortBy` only accepts `name`, `price`, or `createdat`. | Use one of the supported sort fields. |
+| Product list page size validation fails | `PageSize` must be between 1 and 100. | Use a supported page size. |
+| File uploads are not appearing through current API endpoints | `LocalFileService` exists, but current product image API accepts an image URL rather than multipart upload. | Store/upload the file separately or add an upload endpoint. |
 
 ## Contributing
 
-Follow the repository guidance in [`AGENTS.md`](AGENTS.md):
+Development should follow the existing code organization and patterns:
 
-1. Analyze the existing feature and architecture before editing.
-2. Identify controllers, handlers, DTOs, entities, persistence, migrations, validation, and authorization impact.
-3. Document risks and test impact.
-4. Propose an implementation plan before coding.
-
-Existing conventions include:
-
-- Nullable reference types enabled.
-- One EF Core configuration per application entity.
-- Feature-oriented Application folders.
-- Partial API controllers for endpoint slices.
-- MediatR requests and handlers.
-- FluentValidation validators.
-- UTC audit timestamps.
-- Integer database identifiers.
-- Secrets outside source control.
-
-Before submitting changes:
-
-```bash
-dotnet restore Damoor.sln
-dotnet build Damoor.sln
-dotnet test Damoor.sln
-```
-
-Review generated migrations before applying or committing them.
+| Guideline | Existing Pattern |
+| --- | --- |
+| Add API behavior through controllers | Controllers are partial classes grouped by feature/action files. |
+| Add business operations through MediatR | Commands and queries live under `Damoor.Application/Features/<Feature>/...`. |
+| Validate requests with FluentValidation | Each command/query with validation uses a validator in the same feature folder. |
+| Return consistent API responses | Use `ApiResponse<T>` helpers from `ApiBaseController`. |
+| Use EF Core mappings | Add or update configuration classes under `Damoor.Infrastructure/Persistence/Configurations`. |
+| Preserve soft-delete behavior | Use `SoftDeletableEntity` and the audit interceptor when deletion should be logical. |
+| Protect admin capabilities | Use `AdminOnly` policy through admin controllers or authorization attributes. |
+| Keep secrets out of source control | Use user secrets or deployment secret stores for connection strings and JWT keys. |
 
 ## License
 
-No license file was identified during code analysis. Unless a license is added, no usage or redistribution rights are explicitly granted.
+Not identified during code analysis.
