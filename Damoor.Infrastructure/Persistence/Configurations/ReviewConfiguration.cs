@@ -28,6 +28,9 @@ public sealed class ReviewConfiguration
             .OnDelete(DeleteBehavior.ClientNoAction);
         builder.HasIndex(x => x.ProductId);
         builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => new { x.ProductId, x.UserId })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         builder.HasQueryFilter(x =>
             !x.IsDeleted &&
             !x.Product.IsDeleted);
