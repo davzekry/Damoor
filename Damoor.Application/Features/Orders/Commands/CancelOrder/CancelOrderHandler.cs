@@ -35,8 +35,7 @@ public sealed class CancelOrderHandler
         if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed))
             throw new ConflictException("Only pending or confirmed orders can be cancelled.");
 
-        foreach (var item in order.Items.Where(x => x.ProductVariant is not null))
-            item.ProductVariant!.StockQuantity += item.Quantity;
+        OrderAccessor.RestockItems(order);
 
         order.Status = OrderStatus.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
