@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Damoor.API.Extensions;
 using Damoor.API.Filters;
 using Damoor.API.Middleware;
@@ -34,6 +35,9 @@ namespace Damoor.API
             builder.Services.AddScoped<IdempotencyFilter>();
 
             builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Converters.Add(
+                        new JsonStringEnumConverter()))
                 .ConfigureApiBehaviorOptions(options =>
                 {
                     options.InvalidModelStateResponseFactory = context =>
