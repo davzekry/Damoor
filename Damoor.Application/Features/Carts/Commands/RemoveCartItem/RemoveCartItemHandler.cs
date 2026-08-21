@@ -29,11 +29,12 @@ public sealed class RemoveCartItemHandler
 
         var item = await _db.CartItems
             .FirstOrDefaultAsync(
-                x => x.Id == request.ItemId && x.CartId == cartId,
+                x => x.ProductVariantId == request.ProductVariantId &&
+                     x.CartId == cartId,
                 cancellationToken);
 
         if (item is null)
-            throw new NotFoundException("CartItem", request.ItemId);
+            throw new NotFoundException("CartItem", request.ProductVariantId);
 
         _db.CartItems.Remove(item);
         await _db.SaveChangesAsync(cancellationToken);

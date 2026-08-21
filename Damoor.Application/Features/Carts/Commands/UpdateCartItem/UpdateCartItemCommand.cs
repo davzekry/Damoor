@@ -6,5 +6,5 @@ namespace Damoor.Application.Features.Carts.Commands.UpdateCartItem;
 public sealed record UpdateCartItemCommand(
     string? SessionToken,
     int? UserId,
-    int ItemId,
+    int ProductVariantId,
     int Quantity) : IRequest<CartResult>;

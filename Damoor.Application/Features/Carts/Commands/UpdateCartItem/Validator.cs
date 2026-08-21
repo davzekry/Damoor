@@ -11,7 +11,7 @@ public sealed class Validator : AbstractValidator<UpdateCartItemCommand>
             .When(x => x.UserId is null)
             .WithMessage("The X-Shopping-Session header is required.");
 
-        RuleFor(x => x.ItemId)
+        RuleFor(x => x.ProductVariantId)
             .GreaterThan(0);
 
         RuleFor(x => x.Quantity)

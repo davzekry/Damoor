@@ -6,4 +6,4 @@ namespace Damoor.Application.Features.Carts.Commands.RemoveCartItem;
 public sealed record RemoveCartItemCommand(
     string? SessionToken,
     int? UserId,
-    int ItemId) : IRequest<CartResult>;
+    int ProductVariantId) : IRequest<CartResult>;

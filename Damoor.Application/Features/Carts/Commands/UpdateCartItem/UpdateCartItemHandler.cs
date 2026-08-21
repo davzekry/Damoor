@@ -30,11 +30,12 @@ public sealed class UpdateCartItemHandler
         var item = await _db.CartItems
             .Include(x => x.ProductVariant)
             .FirstOrDefaultAsync(
-                x => x.Id == request.ItemId && x.CartId == cartId,
+                x => x.ProductVariantId == request.ProductVariantId &&
+                     x.CartId == cartId,
                 cancellationToken);
 
         if (item is null)
-            throw new NotFoundException("CartItem", request.ItemId);
+            throw new NotFoundException("CartItem", request.ProductVariantId);
 
         if (item.ProductVariant.StockQuantity < request.Quantity)
             throw new BadRequestException("Insufficient stock for the requested quantity.");

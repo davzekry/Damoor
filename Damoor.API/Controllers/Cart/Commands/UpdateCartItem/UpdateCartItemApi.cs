@@ -8,12 +8,12 @@ namespace Damoor.API.Controllers.Cart;
 
 public sealed partial class CartController
 {
-    [HttpPut("items/{id:int}")]
+    [HttpPut("items/{productVariantId:int}")]
     [ProducesResponseType(
         typeof(ApiResponse<CartResult>),
         StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<CartResult>>> UpdateItem(
-        int id,
+        int productVariantId,
         [FromHeader(Name = "X-Shopping-Session")] string? sessionToken,
         [FromBody] UpdateCartItemRequest request,
         CancellationToken cancellationToken)
@@ -22,7 +22,7 @@ public sealed partial class CartController
             new UpdateCartItemCommand(
                 sessionToken,
                 User.GetUserId(),
-                id,
+                productVariantId,
                 request.Quantity),
             cancellationToken);
 

@@ -8,17 +8,17 @@ namespace Damoor.API.Controllers.Cart;
 
 public sealed partial class CartController
 {
-    [HttpDelete("items/{id:int}")]
+    [HttpDelete("items/{productVariantId:int}")]
     [ProducesResponseType(
         typeof(ApiResponse<CartResult>),
         StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<CartResult>>> RemoveItem(
-        int id,
+        int productVariantId,
         [FromHeader(Name = "X-Shopping-Session")] string? sessionToken,
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new RemoveCartItemCommand(sessionToken, User.GetUserId(), id),
+            new RemoveCartItemCommand(sessionToken, User.GetUserId(), productVariantId),
             cancellationToken);
 
         return OkResponse(result, "Item removed from cart.");
