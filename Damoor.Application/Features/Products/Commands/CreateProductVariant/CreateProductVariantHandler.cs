@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Damoor.Application.Features.Products.Commands.CreateProductVariant;
 
 public sealed class CreateProductVariantHandler
-    : IRequestHandler<CreateProductVariantCommand, ProductVariantModel>
+    : IRequestHandler<CreateProductVariantCommand, List<ProductVariantModel>>
 {
     private readonly DamoorDbContext _db;
 
@@ -17,7 +17,7 @@ public sealed class CreateProductVariantHandler
         _db = db;
     }
 
-    public async Task<ProductVariantModel> Handle(
+    public async Task<List<ProductVariantModel>> Handle(
         CreateProductVariantCommand request,
         CancellationToken cancellationToken)
     {
@@ -27,32 +27,59 @@ public sealed class CreateProductVariantHandler
         if (!productExists)
             throw new NotFoundException("Product", request.ProductId);
 
-        var sku = request.SKU.Trim();
-        var size = request.Size.Trim();
-        var color = request.Color.Trim();
+        var variants = new List<ProductVariant>(request.Variants.Count);
+        var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        await EnsureUniqueVariantAsync(
-            request.ProductId,
-            sku,
-            size,
-            color,
-            exceptVariantId: null,
-            cancellationToken);
-
-        var variant = new ProductVariant
+        foreach (var item in request.Variants)
         {
-            ProductId = request.ProductId,
-            SKU = sku,
-            Size = size,
-            Color = color,
-            Price = request.Price,
-            StockQuantity = request.StockQuantity
-        };
+            var sku = item.SKU.Trim();
+            var size = item.Size.Trim();
+            var color = item.Color.Trim();
 
-        _db.ProductVariants.Add(variant);
+            if (!seenSkus.Add(sku))
+            {
+                throw new ConflictException(
+                    $"Duplicate SKU '{sku}' in the request.");
+            }
+
+            if (!seenOptions.Add($"{size}|{color}"))
+            {
+                throw new ConflictException(
+                    $"Duplicate size '{size}' and color '{color}' in the request.");
+            }
+
+            await EnsureUniqueVariantAsync(
+                request.ProductId,
+                sku,
+                size,
+                color,
+                cancellationToken);
+
+            variants.Add(new ProductVariant
+            {
+                ProductId = request.ProductId,
+                SKU = sku,
+                Size = size,
+                Color = color,
+                Price = item.Price,
+                SalePrice = item.SalePrice,
+                StockQuantity = item.StockQuantity,
+                Images = item.Images
+                    .Select(image => new ProductImage
+                    {
+                        ProductId = request.ProductId,
+                        ImageUrl = image.ImageUrl.Trim(),
+                        IsMain = image.IsMain
+                    })
+                    .ToList()
+            });
+        }
+
+        _db.ProductVariants.AddRange(variants);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return ToModel(variant);
+        return variants.Select(ToModel).ToList();
     }
 
     private async Task EnsureUniqueVariantAsync(
@@ -60,14 +87,10 @@ public sealed class CreateProductVariantHandler
         string sku,
         string size,
         string color,
-        int? exceptVariantId,
         CancellationToken cancellationToken)
     {
         var duplicateSku = await _db.ProductVariants
-            .AnyAsync(
-                x => x.SKU == sku &&
-                     (!exceptVariantId.HasValue || x.Id != exceptVariantId.Value),
-                cancellationToken);
+            .AnyAsync(x => x.SKU == sku, cancellationToken);
 
         if (duplicateSku)
             throw new ConflictException("A product variant with this SKU already exists.");
@@ -76,8 +99,7 @@ public sealed class CreateProductVariantHandler
             .AnyAsync(
                 x => x.ProductId == productId &&
                      x.Size == size &&
-                     x.Color == color &&
-                     (!exceptVariantId.HasValue || x.Id != exceptVariantId.Value),
+                     x.Color == color,
                 cancellationToken);
 
         if (duplicateOption)
@@ -95,6 +117,17 @@ public sealed class CreateProductVariantHandler
             Size = variant.Size,
             Color = variant.Color,
             Price = variant.Price,
-            StockQuantity = variant.StockQuantity
+            SalePrice = variant.SalePrice,
+            StockQuantity = variant.StockQuantity,
+            Images = variant.Images
+                .OrderByDescending(i => i.IsMain)
+                .ThenBy(i => i.Id)
+                .Select(i => new ProductImageModel
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    IsMain = i.IsMain
+                })
+                .ToList()
         };
 }

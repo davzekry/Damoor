@@ -10,7 +10,9 @@ public sealed class ProductVariant : SoftDeletableEntity
     public string Size { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    public decimal? SalePrice { get; set; }
     public int StockQuantity { get; set; }
+    public ICollection<ProductImage> Images { get; set; } = [];
     public ICollection<CartItem> CartItems { get; set; } = [];
     public ICollection<OrderItem> OrderItems { get; set; } = [];
 }

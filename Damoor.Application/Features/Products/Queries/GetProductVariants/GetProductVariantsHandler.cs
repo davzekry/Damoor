@@ -39,6 +39,7 @@ public sealed class GetProductVariantsHandler
                 Size = v.Size,
                 Color = v.Color,
                 Price = v.Price,
+                SalePrice = v.SalePrice,
                 StockQuantity = v.StockQuantity
             })
             .ToListAsync(cancellationToken);

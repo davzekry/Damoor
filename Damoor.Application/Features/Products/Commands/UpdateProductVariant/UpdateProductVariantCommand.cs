@@ -9,4 +9,5 @@ public sealed record UpdateProductVariantCommand(
     string Size,
     string Color,
     decimal Price,
+    decimal? SalePrice,
     int StockQuantity) : IRequest<ProductVariantModel>;

@@ -18,14 +18,27 @@ public sealed class ProductImageConfiguration
             .WithMany(x => x.Images)
             .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.ClientNoAction);
+        builder.HasOne(x => x.Variant)
+            .WithMany(x => x.Images)
+            .HasForeignKey(x => x.ProductVariantId)
+            .OnDelete(DeleteBehavior.ClientNoAction);
         builder.HasIndex(
                 x => x.ProductId,
                 "IX_ProductImages_ProductId_Main")
             .IsUnique()
-            .HasFilter("[IsMain] = 1");
+            .HasFilter("[IsMain] = 1 AND [ProductVariantId] IS NULL");
+        builder.HasIndex(
+                x => x.ProductVariantId,
+                "IX_ProductImages_ProductVariantId_Main")
+            .IsUnique()
+            .HasFilter("[IsMain] = 1 AND [ProductVariantId] IS NOT NULL");
         builder.HasIndex(
                 x => x.ProductId,
                 "IX_ProductImages_ProductId_Active")
+            .IsUnique(false);
+        builder.HasIndex(
+                x => x.ProductVariantId,
+                "IX_ProductImages_ProductVariantId_Active")
             .IsUnique(false);
         builder.HasQueryFilter(x => !x.Product.IsDeleted);
     }

@@ -43,6 +43,7 @@ public sealed class UpdateProductVariantHandler
         variant.Size = size;
         variant.Color = color;
         variant.Price = request.Price;
+        variant.SalePrice = request.SalePrice;
         variant.StockQuantity = request.StockQuantity;
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -89,6 +90,7 @@ public sealed class UpdateProductVariantHandler
             Size = variant.Size,
             Color = variant.Color,
             Price = variant.Price,
+            SalePrice = variant.SalePrice,
             StockQuantity = variant.StockQuantity
         };
 }

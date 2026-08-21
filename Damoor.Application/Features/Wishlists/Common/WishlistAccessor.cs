@@ -42,6 +42,7 @@ internal static class WishlistAccessor
                 ProductId = x.ProductId,
                 ProductName = x.Product.Name,
                 MainImageUrl = x.Product.Images
+                    .Where(i => i.ProductVariantId == null)
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => i.ImageUrl)

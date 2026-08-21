@@ -28,7 +28,10 @@ public sealed class SetMainProductImageHandler
             throw new NotFoundException("ProductImage", request.Id);
 
         await _db.ProductImages
-            .Where(x => x.ProductId == image.ProductId && x.Id != image.Id)
+            .Where(x =>
+                x.ProductId == image.ProductId &&
+                x.ProductVariantId == image.ProductVariantId &&
+                x.Id != image.Id)
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(x => x.IsMain, false),
                 cancellationToken);

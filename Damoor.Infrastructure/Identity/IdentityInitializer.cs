@@ -74,6 +74,7 @@ public static class IdentityInitializer
                 FullName = settings.FullName.Trim(),
                 Email = email,
                 UserName = email,
+                PhoneNumber = settings.Phone.Trim(),
                 EmailConfirmed = true
             };
 

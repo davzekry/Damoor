@@ -14,6 +14,12 @@ public sealed class SignUpValidator : AbstractValidator<SignUpCommand>
             .NotEmpty()
             .EmailAddress();
 
+        RuleFor(x => x.PhoneNumber)
+            .NotEmpty()
+            .MaximumLength(20)
+            .Matches(@"^\+?[0-9\s\-()]{7,20}$")
+            .WithMessage("Phone number must be a valid phone number.");
+
         RuleFor(x => x.Password)
             .NotEmpty()
             .MinimumLength(5)

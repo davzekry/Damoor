@@ -23,6 +23,12 @@ public sealed class Validator : AbstractValidator<UpdateProductVariantCommand>
         RuleFor(x => x.Price)
             .GreaterThanOrEqualTo(0);
 
+        RuleFor(x => x.SalePrice!.Value)
+            .GreaterThanOrEqualTo(0)
+            .LessThanOrEqualTo(x => x.Price)
+            .When(x => x.SalePrice.HasValue)
+            .WithName(nameof(UpdateProductVariantCommand.SalePrice));
+
         RuleFor(x => x.StockQuantity)
             .GreaterThanOrEqualTo(0);
     }

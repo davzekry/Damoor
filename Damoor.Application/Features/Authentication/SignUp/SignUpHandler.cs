@@ -53,7 +53,8 @@ public sealed class SignUpHandler
                 {
                     FullName = request.FullName.Trim(),
                     Email = email,
-                    UserName = email
+                    UserName = email,
+                    PhoneNumber = request.PhoneNumber.Trim()
                 };
 
                 var createResult = await _userManager.CreateAsync(

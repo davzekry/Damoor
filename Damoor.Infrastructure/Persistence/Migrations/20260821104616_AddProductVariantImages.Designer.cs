@@ -4,6 +4,7 @@ using Damoor.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Damoor.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DamoorDbContext))]
-    partial class DamoorDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260821104616_AddProductVariantImages")]
+    partial class AddProductVariantImages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -350,10 +353,6 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<decimal?>("SalePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Size")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -380,8 +379,6 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                     b.ToTable("ProductVariants", null, t =>
                         {
                             t.HasCheckConstraint("CK_ProductVariants_Price_NonNegative", "[Price] >= 0");
-
-                            t.HasCheckConstraint("CK_ProductVariants_SalePrice_Valid", "[SalePrice] IS NULL OR ([SalePrice] >= 0 AND [SalePrice] <= [Price])");
 
                             t.HasCheckConstraint("CK_ProductVariants_StockQuantity_NonNegative", "[StockQuantity] >= 0");
                         });
@@ -582,9 +579,7 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");

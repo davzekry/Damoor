@@ -28,14 +28,20 @@ public sealed class CreateProductImageHandler
             throw new NotFoundException("Product", request.ProductId);
 
         var hasImages = await _db.ProductImages
-            .AnyAsync(x => x.ProductId == request.ProductId, cancellationToken);
+            .AnyAsync(
+                x => x.ProductId == request.ProductId &&
+                     x.ProductVariantId == null,
+                cancellationToken);
 
         var shouldBeMain = request.IsMain || !hasImages;
 
         if (shouldBeMain)
         {
             await _db.ProductImages
-                .Where(x => x.ProductId == request.ProductId && x.IsMain)
+                .Where(x =>
+                    x.ProductId == request.ProductId &&
+                    x.ProductVariantId == null &&
+                    x.IsMain)
                 .ExecuteUpdateAsync(
                     setters => setters.SetProperty(x => x.IsMain, false),
                     cancellationToken);

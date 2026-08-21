@@ -12,6 +12,9 @@ public sealed class AppUserConfiguration
         builder.Property(x => x.FullName)
             .IsRequired()
             .HasMaxLength(200);
+        builder.Property(x => x.PhoneNumber)
+            .IsRequired()
+            .HasMaxLength(20);
         builder.Property(x => x.CreatedAt)
             .IsRequired();
         builder.HasIndex(x => x.NormalizedUserName)

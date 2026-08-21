@@ -23,6 +23,7 @@ public sealed partial class AdminProductVariantsController
                 request.Size,
                 request.Color,
                 request.Price,
+                request.SalePrice,
                 request.StockQuantity),
             cancellationToken);
 
@@ -35,4 +36,5 @@ public sealed record UpdateProductVariantRequest(
     string Size,
     string Color,
     decimal Price,
+    decimal? SalePrice,
     int StockQuantity);

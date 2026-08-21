@@ -116,6 +116,7 @@ public sealed class GetAllProductsHandler
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category.Name,
                 MainImageUrl = p.Images
+                    .Where(i => i.ProductVariantId == null)
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => i.ImageUrl)

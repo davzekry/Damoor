@@ -61,11 +61,17 @@ internal static class CartAccessor
                 Color = x.ProductVariant.Color,
                 UnitPrice = x.ProductVariant.Price,
                 Quantity = x.Quantity,
-                MainImageUrl = x.ProductVariant.Product.Images
+                MainImageUrl = x.ProductVariant.Images
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => i.ImageUrl)
                     .FirstOrDefault()
+                    ?? x.ProductVariant.Product.Images
+                        .Where(i => i.ProductVariantId == null)
+                        .OrderByDescending(i => i.IsMain)
+                        .ThenBy(i => i.Id)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 

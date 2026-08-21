@@ -19,6 +19,9 @@ public sealed class ProductVariantConfiguration
                 table.HasCheckConstraint(
                     "CK_ProductVariants_StockQuantity_NonNegative",
                     "[StockQuantity] >= 0");
+                table.HasCheckConstraint(
+                    "CK_ProductVariants_SalePrice_Valid",
+                    "[SalePrice] IS NULL OR ([SalePrice] >= 0 AND [SalePrice] <= [Price])");
             });
         builder.HasKey(x => x.Id);
         builder.Property(x => x.SKU)
@@ -33,6 +36,8 @@ public sealed class ProductVariantConfiguration
         builder.Property(x => x.Price)
             .HasPrecision(18, 2)
             .IsRequired();
+        builder.Property(x => x.SalePrice)
+            .HasPrecision(18, 2);
         builder.Property(x => x.StockQuantity)
             .HasDefaultValue(0);
         builder.HasOne(x => x.Product)

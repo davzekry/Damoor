@@ -41,6 +41,7 @@ public sealed class GetProductByIdHandler
                     : null,
                 ReviewCount = p.Reviews.Count,
                 Images = p.Images
+                    .Where(i => i.ProductVariantId == null)
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => new ProductImageModel
@@ -60,7 +61,18 @@ public sealed class GetProductByIdHandler
                         Size = v.Size,
                         Color = v.Color,
                         Price = v.Price,
-                        StockQuantity = v.StockQuantity
+                        SalePrice = v.SalePrice,
+                        StockQuantity = v.StockQuantity,
+                        Images = v.Images
+                            .OrderByDescending(i => i.IsMain)
+                            .ThenBy(i => i.Id)
+                            .Select(i => new ProductImageModel
+                            {
+                                Id = i.Id,
+                                ImageUrl = i.ImageUrl,
+                                IsMain = i.IsMain
+                            })
+                            .ToList()
                     })
                     .ToList()
             })
