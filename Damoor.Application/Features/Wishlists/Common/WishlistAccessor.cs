@@ -39,17 +39,25 @@ internal static class WishlistAccessor
             .Select(x => new WishlistItemResult
             {
                 Id = x.Id,
-                ProductId = x.ProductId,
-                ProductName = x.Product.Name,
-                MainImageUrl = x.Product.Images
-                    .Where(i => i.ProductVariantId == null)
+                ProductVariantId = x.ProductVariantId,
+                ProductId = x.Variant.ProductId,
+                ProductName = x.Variant.Product.Name,
+                SKU = x.Variant.SKU,
+                Size = x.Variant.Size,
+                Color = x.Variant.Color,
+                Price = x.Variant.Price,
+                SalePrice = x.Variant.SalePrice,
+                MainImageUrl = x.Variant.Images
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => i.ImageUrl)
-                    .FirstOrDefault(),
-                MinPrice = x.Product.Variants
-                    .Select(v => (decimal?)v.Price)
-                    .Min(),
+                    .FirstOrDefault()
+                    ?? x.Variant.Product.Images
+                        .Where(i => i.ProductVariantId == null)
+                        .OrderByDescending(i => i.IsMain)
+                        .ThenBy(i => i.Id)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault(),
                 AddedAt = x.CreatedAt
             })
             .ToListAsync(cancellationToken);
