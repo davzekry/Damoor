@@ -1,25 +1,25 @@
 using Damoor.API.Extensions;
 using Damoor.Application.Common.Models;
-using Damoor.Application.Features.Reviews.Commands.CreateReview;
+using Damoor.Application.Features.Reviews.Commands.CreateVariantReview;
 using Damoor.Application.Features.Reviews.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Damoor.API.Controllers.Products;
+namespace Damoor.API.Controllers.ProductVariants;
 
-public sealed partial class ProductReviewsController
+public sealed partial class ProductVariantReviewsController
 {
     [HttpPost]
     [ProducesResponseType(
         typeof(ApiResponse<ReviewResult>),
         StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<ReviewResult>>> Create(
-        int productId,
-        [FromBody] CreateReviewRequest request,
+        int productVariantId,
+        [FromBody] CreateVariantReviewRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new CreateReviewCommand(
-                productId,
+            new CreateVariantReviewCommand(
+                productVariantId,
                 User.GetUserId()!.Value,
                 request.Rating,
                 request.Comment),
@@ -29,4 +29,4 @@ public sealed partial class ProductReviewsController
     }
 }
 
-public sealed record CreateReviewRequest(int Rating, string? Comment);
+public sealed record CreateVariantReviewRequest(int Rating, string? Comment);

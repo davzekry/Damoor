@@ -4,38 +4,39 @@ using Damoor.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Damoor.Application.Features.Reviews.Queries.GetProductReviews;
+namespace Damoor.Application.Features.Reviews.Queries.GetVariantReviews;
 
-public sealed class GetProductReviewsHandler
-    : IRequestHandler<GetProductReviewsQuery, List<ReviewResult>>
+public sealed class GetVariantReviewsHandler
+    : IRequestHandler<GetVariantReviewsQuery, List<ReviewResult>>
 {
     private readonly DamoorDbContext _db;
 
-    public GetProductReviewsHandler(DamoorDbContext db)
+    public GetVariantReviewsHandler(DamoorDbContext db)
     {
         _db = db;
     }
 
     public async Task<List<ReviewResult>> Handle(
-        GetProductReviewsQuery request,
+        GetVariantReviewsQuery request,
         CancellationToken cancellationToken)
     {
-        var productExists = await _db.Products
+        var variantExists = await _db.ProductVariants
             .AsNoTracking()
-            .AnyAsync(x => x.Id == request.ProductId, cancellationToken);
+            .AnyAsync(x => x.Id == request.ProductVariantId, cancellationToken);
 
-        if (!productExists)
-            throw new NotFoundException("Product", request.ProductId);
+        if (!variantExists)
+            throw new NotFoundException("ProductVariant", request.ProductVariantId);
 
         return await (
             from r in _db.Reviews.AsNoTracking()
             join u in _db.Users.AsNoTracking() on r.UserId equals u.Id
-            where r.ProductId == request.ProductId
+            where r.ProductVariantId == request.ProductVariantId
             orderby r.CreatedAt descending
             select new ReviewResult
             {
                 Id = r.Id,
                 ProductId = r.ProductId,
+                ProductVariantId = r.ProductVariantId,
                 UserId = r.UserId,
                 UserName = u.FullName,
                 Rating = r.Rating,

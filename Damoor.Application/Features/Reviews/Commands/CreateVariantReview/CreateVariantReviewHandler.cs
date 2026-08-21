@@ -6,39 +6,43 @@ using Damoor.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Damoor.Application.Features.Reviews.Commands.CreateReview;
+namespace Damoor.Application.Features.Reviews.Commands.CreateVariantReview;
 
-public sealed class CreateReviewHandler
-    : IRequestHandler<CreateReviewCommand, ReviewResult>
+public sealed class CreateVariantReviewHandler
+    : IRequestHandler<CreateVariantReviewCommand, ReviewResult>
 {
     private readonly DamoorDbContext _db;
 
-    public CreateReviewHandler(DamoorDbContext db)
+    public CreateVariantReviewHandler(DamoorDbContext db)
     {
         _db = db;
     }
 
     public async Task<ReviewResult> Handle(
-        CreateReviewCommand request,
+        CreateVariantReviewCommand request,
         CancellationToken cancellationToken)
     {
-        var productExists = await _db.Products
-            .AnyAsync(x => x.Id == request.ProductId, cancellationToken);
+        var productId = await _db.ProductVariants
+            .Where(x => x.Id == request.ProductVariantId)
+            .Select(x => (int?)x.ProductId)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!productExists)
-            throw new NotFoundException("Product", request.ProductId);
+        if (productId is null)
+            throw new NotFoundException("ProductVariant", request.ProductVariantId);
 
         var alreadyReviewed = await _db.Reviews
             .AnyAsync(
-                x => x.ProductId == request.ProductId && x.UserId == request.UserId,
+                x => x.ProductVariantId == request.ProductVariantId &&
+                     x.UserId == request.UserId,
                 cancellationToken);
 
         if (alreadyReviewed)
-            throw new ConflictException("You have already reviewed this product.");
+            throw new ConflictException("You have already reviewed this variant.");
 
         var review = new Review
         {
-            ProductId = request.ProductId,
+            ProductId = productId.Value,
+            ProductVariantId = request.ProductVariantId,
             UserId = request.UserId,
             Rating = request.Rating,
             Comment = request.Comment?.Trim()

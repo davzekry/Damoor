@@ -4,6 +4,7 @@ public sealed class ReviewResult
 {
     public int Id { get; set; }
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
     public int UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
     public int Rating { get; set; }

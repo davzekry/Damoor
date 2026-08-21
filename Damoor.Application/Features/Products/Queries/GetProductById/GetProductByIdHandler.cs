@@ -36,10 +36,12 @@ public sealed class GetProductByIdHandler
                 TotalStockQuantity = p.Variants
                     .Select(v => (int?)v.StockQuantity)
                     .Sum() ?? 0,
-                AverageRating = p.Reviews.Any()
-                    ? p.Reviews.Average(r => (double?)r.Rating)
+                AverageRating = p.Reviews.Any(r => r.ProductVariantId == null)
+                    ? p.Reviews
+                        .Where(r => r.ProductVariantId == null)
+                        .Average(r => (double?)r.Rating)
                     : null,
-                ReviewCount = p.Reviews.Count,
+                ReviewCount = p.Reviews.Count(r => r.ProductVariantId == null),
                 Images = p.Images
                     .Where(i => i.ProductVariantId == null)
                     .OrderByDescending(i => i.IsMain)

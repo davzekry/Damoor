@@ -10,6 +10,7 @@ internal static class ReviewMapper
         {
             Id = review.Id,
             ProductId = review.ProductId,
+            ProductVariantId = review.ProductVariantId,
             UserId = review.UserId,
             UserName = userName,
             Rating = review.Rating,

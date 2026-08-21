@@ -1,11 +1,11 @@
 using Damoor.Application.Common.Models;
 using Damoor.Application.Features.Reviews.Models;
-using Damoor.Application.Features.Reviews.Queries.GetProductReviews;
+using Damoor.Application.Features.Reviews.Queries.GetVariantReviews;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Damoor.API.Controllers.Products;
+namespace Damoor.API.Controllers.ProductVariants;
 
-public sealed partial class ProductsController
+public sealed partial class ProductVariantsController
 {
     [HttpGet("{id:int}/reviews")]
     [ProducesResponseType(
@@ -16,7 +16,7 @@ public sealed partial class ProductsController
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new GetProductReviewsQuery(id),
+            new GetVariantReviewsQuery(id),
             cancellationToken);
 
         return OkResponse(result, $"Found {result.Count} review(s).");

@@ -22,15 +22,23 @@ public sealed class ReviewConfiguration
             .WithMany(x => x.Reviews)
             .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.ClientNoAction);
+        builder.HasOne(x => x.Variant)
+            .WithMany(x => x.Reviews)
+            .HasForeignKey(x => x.ProductVariantId)
+            .OnDelete(DeleteBehavior.ClientNoAction);
         builder.HasOne<AppUser>()
             .WithMany(x => x.Reviews)
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.ClientNoAction);
         builder.HasIndex(x => x.ProductId);
+        builder.HasIndex(x => x.ProductVariantId);
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => new { x.ProductId, x.UserId })
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0");
+            .HasFilter("[IsDeleted] = 0 AND [ProductVariantId] IS NULL");
+        builder.HasIndex(x => new { x.ProductVariantId, x.UserId })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [ProductVariantId] IS NOT NULL");
         builder.HasQueryFilter(x =>
             !x.IsDeleted &&
             !x.Product.IsDeleted);
