@@ -1,5 +1,6 @@
 using Damoor.Application.Common.Exceptions;
 using Damoor.Application.Features.Carts.Models;
+using Damoor.Domain.Entities;
 using Damoor.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,12 +8,22 @@ namespace Damoor.Application.Features.Carts.Common;
 
 internal static class CartAccessor
 {
+    private static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
+
     public static async Task<int> ResolveCartIdAsync(
         DamoorDbContext db,
         string? sessionToken,
         int? userId,
         CancellationToken cancellationToken)
     {
+        var now = DateTime.UtcNow;
+
+        // Signed-in shopper: use (or create) the cart tied to their account,
+        // independent of any X-Shopping-Session header.
+        if (userId.HasValue)
+            return await ResolveUserCartIdAsync(db, userId.Value, now, cancellationToken);
+
+        // Guest shopper: identified solely by the shopping-session token.
         if (string.IsNullOrWhiteSpace(sessionToken))
             throw new BadRequestException("The X-Shopping-Session header is required.");
 
@@ -22,12 +33,12 @@ internal static class CartAccessor
                 x => x.SessionToken == sessionToken,
                 cancellationToken);
 
-        if (session is null || session.ExpiresAt <= DateTime.UtcNow)
+        if (session is null || session.ExpiresAt <= now)
             throw new NotFoundException("ShoppingSession", sessionToken);
 
-        if (session.UserId.HasValue && session.UserId != userId)
+        if (session.UserId.HasValue)
             throw new UnauthorizedException(
-                "This shopping session does not belong to the current user.");
+                "This shopping session belongs to a registered account. Please sign in.");
 
         var cart = await db.Carts
             .AsNoTracking()
@@ -39,6 +50,38 @@ internal static class CartAccessor
             throw new NotFoundException("Cart", sessionToken);
 
         return cart.Id;
+    }
+
+    private static async Task<int> ResolveUserCartIdAsync(
+        DamoorDbContext db,
+        int userId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var cartId = await db.Carts
+            .Where(x =>
+                x.ShoppingSession.UserId == userId &&
+                x.ShoppingSession.ExpiresAt > now)
+            .OrderByDescending(x => x.ShoppingSession.ExpiresAt)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (cartId.HasValue)
+            return cartId.Value;
+
+        // First interaction for this account: provision a session-backed cart.
+        var session = new ShoppingSession
+        {
+            SessionToken = Guid.NewGuid().ToString("N"),
+            UserId = userId,
+            ExpiresAt = now.Add(SessionLifetime),
+            Cart = new Cart()
+        };
+
+        db.ShoppingSessions.Add(session);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return session.Cart.Id;
     }
 
     public static async Task<CartResult> BuildCartResultAsync(

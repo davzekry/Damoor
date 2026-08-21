@@ -8,6 +8,7 @@ public sealed class Validator : AbstractValidator<UpdateCartItemCommand>
     {
         RuleFor(x => x.SessionToken)
             .NotEmpty()
+            .When(x => x.UserId is null)
             .WithMessage("The X-Shopping-Session header is required.");
 
         RuleFor(x => x.ItemId)
