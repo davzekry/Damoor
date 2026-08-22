@@ -57,6 +57,16 @@ namespace Damoor.API
                 });
             builder.Services.AddEndpointsApiExplorer();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAngular", policy =>
+                {
+                    policy
+                        .WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
 
             var app = builder.Build();
 
@@ -83,6 +93,8 @@ namespace Damoor.API
 
             // 1. Routing must come before Rate Limiting and Auth
             app.UseRouting();
+
+            app.UseCors("AllowAngular");
 
             // 2. Rate Limiting must come after Routing but before Auth/Endpoints
             app.UseRateLimiter();
