@@ -10,7 +10,8 @@ public sealed class AdminOrderSummaryResult
     public DateTime CreatedAt { get; set; }
     public int ItemCount { get; set; }
     public int? UserId { get; set; }
-    public string? CustomerName { get; set; }
-    public string? CustomerEmail { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string WhatsAppNumber { get; set; } = string.Empty;
+    public string? AccountEmail { get; set; }
     public string? SessionToken { get; set; }
 }

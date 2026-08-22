@@ -10,5 +10,9 @@ public sealed class Order : BaseEntity, INonDeletable
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public string ShippingAddress { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string WhatsAppNumber { get; set; } = string.Empty;
+    public string? BackupPhoneNumber { get; set; }
+    public string? Notes { get; set; }
     public ICollection<OrderItem> Items { get; set; } = [];
 }

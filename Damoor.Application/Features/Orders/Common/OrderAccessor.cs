@@ -31,6 +31,10 @@ internal static class OrderAccessor
             Status = order.Status,
             TotalAmount = order.TotalAmount,
             ShippingAddress = order.ShippingAddress,
+            CustomerName = order.CustomerName,
+            WhatsAppNumber = order.WhatsAppNumber,
+            BackupPhoneNumber = order.BackupPhoneNumber,
+            Notes = order.Notes,
             CreatedAt = order.CreatedAt,
             Items = order.Items.Select(ToItemResult).ToList()
         };
@@ -59,11 +63,14 @@ internal static class OrderAccessor
             Status = order.Status,
             TotalAmount = order.TotalAmount,
             ShippingAddress = order.ShippingAddress,
+            CustomerName = order.CustomerName,
+            WhatsAppNumber = order.WhatsAppNumber,
+            BackupPhoneNumber = order.BackupPhoneNumber,
+            Notes = order.Notes,
             CreatedAt = order.CreatedAt,
             UpdatedAt = order.UpdatedAt,
             UserId = order.UserId,
-            CustomerName = user?.FullName,
-            CustomerEmail = user?.Email,
+            AccountEmail = user?.Email,
             SessionToken = order.SessionToken,
             Items = order.Items.Select(ToItemResult).ToList()
         };

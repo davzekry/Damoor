@@ -39,6 +39,18 @@ public sealed class OrderConfiguration
         builder.Property(x => x.ShippingAddress)
             .IsRequired()
             .HasMaxLength(1000);
+        builder.Property(x => x.CustomerName)
+            .IsRequired()
+            .HasMaxLength(200)
+            .HasDefaultValue(string.Empty);
+        builder.Property(x => x.WhatsAppNumber)
+            .IsRequired()
+            .HasMaxLength(32)
+            .HasDefaultValue(string.Empty);
+        builder.Property(x => x.BackupPhoneNumber)
+            .HasMaxLength(32);
+        builder.Property(x => x.Notes)
+            .HasMaxLength(1000);
         builder.HasOne<AppUser>()
             .WithMany(x => x.Orders)
             .HasForeignKey(x => x.UserId)
