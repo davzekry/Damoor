@@ -10,7 +10,6 @@ namespace Damoor.Domain.Entities
         public Category Category { get; set; } = null!;
         public ICollection<ProductVariant> Variants { get; set; } = [];
         public ICollection<ProductImage> Images { get; set; } = [];
-        public ICollection<WishlistItem> WishlistItems { get; set; } = [];
         public ICollection<Review> Reviews { get; set; } = [];
     }
 }

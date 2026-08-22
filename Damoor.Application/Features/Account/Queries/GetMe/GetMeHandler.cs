@@ -32,6 +32,7 @@ public sealed class GetMeHandler
             Id = user.Id,
             FullName = user.FullName,
             Email = user.Email!,
+            PhoneNumber = user.PhoneNumber!,
             Roles = roles.ToArray()
         };
     }

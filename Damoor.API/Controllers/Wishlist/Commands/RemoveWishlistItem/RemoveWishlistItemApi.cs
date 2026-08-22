@@ -8,16 +8,16 @@ namespace Damoor.API.Controllers.Wishlist;
 
 public sealed partial class WishlistController
 {
-    [HttpDelete("items/{productId:int}")]
+    [HttpDelete("items/{productVariantId:int}")]
     [ProducesResponseType(
         typeof(ApiResponse<WishlistResult>),
         StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<WishlistResult>>> RemoveItem(
-        int productId,
+        int productVariantId,
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new RemoveWishlistItemCommand(User.GetUserId()!.Value, productId),
+            new RemoveWishlistItemCommand(User.GetUserId()!.Value, productVariantId),
             cancellationToken);
 
         return OkResponse(result, "Item removed from wishlist.");

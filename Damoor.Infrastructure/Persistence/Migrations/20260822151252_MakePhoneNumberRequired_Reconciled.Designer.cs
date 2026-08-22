@@ -4,6 +4,7 @@ using Damoor.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Damoor.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DamoorDbContext))]
-    partial class DamoorDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260822151252_MakePhoneNumberRequired_Reconciled")]
+    partial class MakePhoneNumberRequired_Reconciled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -516,7 +519,7 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ProductVariantId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -527,9 +530,9 @@ namespace Damoor.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductVariantId");
+                    b.HasIndex("ProductId");
 
-                    b.HasIndex("WishlistId", "ProductVariantId")
+                    b.HasIndex("WishlistId", "ProductId")
                         .IsUnique();
 
                     b.ToTable("WishlistItems", (string)null);
@@ -882,9 +885,9 @@ namespace Damoor.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Damoor.Domain.Entities.WishlistItem", b =>
                 {
-                    b.HasOne("Damoor.Domain.Entities.ProductVariant", "ProductVariant")
+                    b.HasOne("Damoor.Domain.Entities.Product", "Product")
                         .WithMany("WishlistItems")
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.ClientNoAction)
                         .IsRequired();
 
@@ -894,7 +897,7 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("Product");
 
                     b.Navigation("Wishlist");
                 });
@@ -972,6 +975,8 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                     b.Navigation("Reviews");
 
                     b.Navigation("Variants");
+
+                    b.Navigation("WishlistItems");
                 });
 
             modelBuilder.Entity("Damoor.Domain.Entities.ProductVariant", b =>
@@ -979,8 +984,6 @@ namespace Damoor.Infrastructure.Persistence.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
-
-                    b.Navigation("WishlistItems");
                 });
 
             modelBuilder.Entity("Damoor.Domain.Entities.ShoppingSession", b =>

@@ -27,18 +27,18 @@ public sealed class AddWishlistItemHandler
             request.UserId,
             cancellationToken);
 
-        var productExists = await _db.Products
-            .AnyAsync(x => x.Id == request.ProductId, cancellationToken);
+        var variantExists = await _db.ProductVariants
+            .AnyAsync(x => x.Id == request.ProductVariantId, cancellationToken);
 
-        if (!productExists)
-            throw new NotFoundException("Product", request.ProductId);
+        if (!variantExists)
+            throw new NotFoundException("ProductVariant", request.ProductVariantId);
 
         var alreadyInWishlist = await _db.WishlistItems
             .AnyAsync(
-                x => x.WishlistId == wishlistId && x.ProductId == request.ProductId,
+                x => x.WishlistId == wishlistId && x.ProductVariantId == request.ProductVariantId,
                 cancellationToken);
 
-        // Adding an already-wishlisted product is idempotent rather than a
+        // Adding an already-wishlisted variant is idempotent rather than a
         // conflict, since re-favoriting an item is not an error from the
         // customer's perspective.
         if (!alreadyInWishlist)
@@ -46,7 +46,7 @@ public sealed class AddWishlistItemHandler
             _db.WishlistItems.Add(new WishlistItem
             {
                 WishlistId = wishlistId,
-                ProductId = request.ProductId
+                ProductVariantId = request.ProductVariantId
             });
 
             await _db.SaveChangesAsync(cancellationToken);
