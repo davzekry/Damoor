@@ -9,4 +9,5 @@ public sealed class OrderSummaryResult
     public decimal TotalAmount { get; set; }
     public DateTime CreatedAt { get; set; }
     public int ItemCount { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
 }

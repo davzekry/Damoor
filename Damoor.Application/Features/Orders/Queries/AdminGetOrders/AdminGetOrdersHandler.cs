@@ -34,6 +34,8 @@ public sealed class AdminGetOrdersHandler
         if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(x =>
+                x.Order.CustomerName.Contains(search) ||
+                x.Order.WhatsAppNumber.Contains(search) ||
                 (x.Order.SessionToken != null && x.Order.SessionToken.Contains(search)) ||
                 (x.User != null &&
                     (x.User.FullName.Contains(search) ||
@@ -57,8 +59,9 @@ public sealed class AdminGetOrdersHandler
                 CreatedAt = x.Order.CreatedAt,
                 ItemCount = x.Order.Items.Count,
                 UserId = x.Order.UserId,
-                CustomerName = x.User != null ? x.User.FullName : null,
-                CustomerEmail = x.User != null ? x.User.Email : null,
+                CustomerName = x.Order.CustomerName,
+                WhatsAppNumber = x.Order.WhatsAppNumber,
+                AccountEmail = x.User != null ? x.User.Email : null,
                 SessionToken = x.Order.SessionToken
             })
             .ToListAsync(cancellationToken);

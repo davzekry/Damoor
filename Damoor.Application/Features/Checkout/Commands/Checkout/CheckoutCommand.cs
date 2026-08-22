@@ -6,4 +6,8 @@ namespace Damoor.Application.Features.Checkout.Commands.Checkout;
 public sealed record CheckoutCommand(
     string? SessionToken,
     int? UserId,
-    string ShippingAddress) : IRequest<OrderDetailsResult>;
+    string ShippingAddress,
+    string CustomerName,
+    string WhatsAppNumber,
+    string? BackupPhoneNumber,
+    string? Notes) : IRequest<OrderDetailsResult>;

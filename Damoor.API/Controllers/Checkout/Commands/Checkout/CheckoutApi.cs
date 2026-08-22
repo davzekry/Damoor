@@ -18,11 +18,23 @@ public sealed partial class CheckoutController
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new CheckoutCommand(sessionToken, User.GetUserId(), request.ShippingAddress),
+            new CheckoutCommand(
+                sessionToken,
+                User.GetUserId(),
+                request.ShippingAddress,
+                request.CustomerName,
+                request.WhatsAppNumber,
+                request.BackupPhoneNumber,
+                request.Notes),
             cancellationToken);
 
         return CreatedResponse(result, "Order placed successfully.");
     }
 }
 
-public sealed record CheckoutRequest(string ShippingAddress);
+public sealed record CheckoutRequest(
+    string ShippingAddress,
+    string CustomerName,
+    string WhatsAppNumber,
+    string? BackupPhoneNumber,
+    string? Notes);

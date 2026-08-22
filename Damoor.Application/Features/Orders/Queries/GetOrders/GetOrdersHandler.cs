@@ -33,7 +33,8 @@ public sealed class GetOrdersHandler
                 Status = x.Status,
                 TotalAmount = x.TotalAmount,
                 CreatedAt = x.CreatedAt,
-                ItemCount = x.Items.Count
+                ItemCount = x.Items.Count,
+                CustomerName = x.CustomerName
             })
             .ToListAsync(cancellationToken);
     }

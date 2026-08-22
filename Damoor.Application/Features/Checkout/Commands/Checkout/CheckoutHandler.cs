@@ -66,6 +66,14 @@ public sealed class CheckoutHandler
             TotalAmount = orderItems.Sum(x => x.Quantity * x.UnitPrice),
             Status = OrderStatus.Pending,
             ShippingAddress = request.ShippingAddress.Trim(),
+            CustomerName = request.CustomerName.Trim(),
+            WhatsAppNumber = request.WhatsAppNumber.Trim(),
+            BackupPhoneNumber = string.IsNullOrWhiteSpace(request.BackupPhoneNumber)
+                ? null
+                : request.BackupPhoneNumber.Trim(),
+            Notes = string.IsNullOrWhiteSpace(request.Notes)
+                ? null
+                : request.Notes.Trim(),
             Items = orderItems
         };
 
