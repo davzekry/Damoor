@@ -38,10 +38,11 @@ public static class IdentityInitializer
 
         if (string.IsNullOrWhiteSpace(settings.FullName) ||
             string.IsNullOrWhiteSpace(settings.Email) ||
+            string.IsNullOrWhiteSpace(settings.PhoneNumber) ||
             string.IsNullOrWhiteSpace(settings.Password))
         {
             throw new InvalidOperationException(
-                "AdminSeed FullName, Email, and Password are required when AdminSeed is enabled.");
+                "AdminSeed FullName, Email, PhoneNumber, and Password are required when AdminSeed is enabled.");
         }
 
         var email = settings.Email.Trim();
@@ -74,6 +75,7 @@ public static class IdentityInitializer
                 FullName = settings.FullName.Trim(),
                 Email = email,
                 UserName = email,
+                PhoneNumber = settings.PhoneNumber.Trim(),
                 EmailConfirmed = true
             };
 

@@ -5,4 +5,4 @@ namespace Damoor.Application.Features.Wishlists.Commands.AddWishlistItem;
 
 public sealed record AddWishlistItemCommand(
     int UserId,
-    int ProductId) : IRequest<WishlistResult>;
+    int ProductVariantId) : IRequest<WishlistResult>;

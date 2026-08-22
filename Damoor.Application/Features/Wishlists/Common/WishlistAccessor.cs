@@ -39,16 +39,19 @@ internal static class WishlistAccessor
             .Select(x => new WishlistItemResult
             {
                 Id = x.Id,
-                ProductId = x.ProductId,
-                ProductName = x.Product.Name,
-                MainImageUrl = x.Product.Images
+                ProductVariantId = x.ProductVariantId,
+                ProductId = x.ProductVariant.ProductId,
+                ProductName = x.ProductVariant.Product.Name,
+                SKU = x.ProductVariant.SKU,
+                Size = x.ProductVariant.Size,
+                Color = x.ProductVariant.Color,
+                Price = x.ProductVariant.Price,
+                IsInStock = x.ProductVariant.StockQuantity > 0,
+                MainImageUrl = x.ProductVariant.Product.Images
                     .OrderByDescending(i => i.IsMain)
                     .ThenBy(i => i.Id)
                     .Select(i => i.ImageUrl)
                     .FirstOrDefault(),
-                MinPrice = x.Product.Variants
-                    .Select(v => (decimal?)v.Price)
-                    .Min(),
                 AddedAt = x.CreatedAt
             })
             .ToListAsync(cancellationToken);

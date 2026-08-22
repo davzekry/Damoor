@@ -15,12 +15,14 @@ public sealed class WishlistItemConfiguration
             .WithMany(x => x.Items)
             .HasForeignKey(x => x.WishlistId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.Product)
+        builder.HasOne(x => x.ProductVariant)
             .WithMany(x => x.WishlistItems)
-            .HasForeignKey(x => x.ProductId)
+            .HasForeignKey(x => x.ProductVariantId)
             .OnDelete(DeleteBehavior.ClientNoAction);
-        builder.HasIndex(x => new { x.WishlistId, x.ProductId })
+        builder.HasIndex(x => new { x.WishlistId, x.ProductVariantId })
             .IsUnique();
-        builder.HasQueryFilter(x => !x.Product.IsDeleted);
+        builder.HasQueryFilter(x =>
+            !x.ProductVariant.IsDeleted &&
+            !x.ProductVariant.Product.IsDeleted);
     }
 }

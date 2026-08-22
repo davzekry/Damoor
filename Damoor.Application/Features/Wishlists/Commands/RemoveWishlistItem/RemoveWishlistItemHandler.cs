@@ -28,11 +28,11 @@ public sealed class RemoveWishlistItemHandler
 
         var item = await _db.WishlistItems
             .FirstOrDefaultAsync(
-                x => x.WishlistId == wishlistId && x.ProductId == request.ProductId,
+                x => x.WishlistId == wishlistId && x.ProductVariantId == request.ProductVariantId,
                 cancellationToken);
 
         if (item is null)
-            throw new NotFoundException("WishlistItem", request.ProductId);
+            throw new NotFoundException("WishlistItem", request.ProductVariantId);
 
         _db.WishlistItems.Remove(item);
         await _db.SaveChangesAsync(cancellationToken);

@@ -4,6 +4,8 @@ namespace Damoor.Application.Features.Authentication.SignUp;
 
 public sealed class SignUpValidator : AbstractValidator<SignUpCommand>
 {
+    private const string PhonePattern = @"^[+0-9\s\-()]{6,20}$";
+
     public SignUpValidator()
     {
         RuleFor(x => x.FullName)
@@ -13,6 +15,12 @@ public sealed class SignUpValidator : AbstractValidator<SignUpCommand>
         RuleFor(x => x.Email)
             .NotEmpty()
             .EmailAddress();
+
+        RuleFor(x => x.PhoneNumber)
+            .NotEmpty()
+            .MaximumLength(20)
+            .Matches(PhonePattern)
+            .WithMessage("PhoneNumber must be a valid phone number.");
 
         RuleFor(x => x.Password)
             .NotEmpty()

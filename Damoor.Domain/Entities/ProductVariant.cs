@@ -13,4 +13,5 @@ public sealed class ProductVariant : SoftDeletableEntity
     public int StockQuantity { get; set; }
     public ICollection<CartItem> CartItems { get; set; } = [];
     public ICollection<OrderItem> OrderItems { get; set; } = [];
+    public ICollection<WishlistItem> WishlistItems { get; set; } = [];
 }

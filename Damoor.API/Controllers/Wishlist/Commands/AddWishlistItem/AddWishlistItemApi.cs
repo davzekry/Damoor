@@ -17,11 +17,11 @@ public sealed partial class WishlistController
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(
-            new AddWishlistItemCommand(User.GetUserId()!.Value, request.ProductId),
+            new AddWishlistItemCommand(User.GetUserId()!.Value, request.ProductVariantId),
             cancellationToken);
 
         return CreatedResponse(result, "Item added to wishlist.");
     }
 }
 
-public sealed record AddWishlistItemRequest(int ProductId);
+public sealed record AddWishlistItemRequest(int ProductVariantId);
